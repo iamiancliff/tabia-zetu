@@ -48,4 +48,3 @@ const behaviorLogSchema = mongoose.Schema(
 const BehaviorLog = mongoose.model("BehaviorLog", behaviorLogSchema)
 
 export default BehaviorLog;
-

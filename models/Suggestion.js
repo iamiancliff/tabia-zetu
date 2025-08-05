@@ -1,12 +1,45 @@
-import express from "express"
-import { getDashboardData, getAllUsers, updateUserStatus } from "../controllers/adminController.js"
-import { protect, admin } from "../middleware/auth.js"
+import mongoose from "mongoose"
 
-const router = express.Router()
+const suggestionSchema = mongoose.Schema(
+  {
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
+    teacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    behaviorPattern: {
+      type: String,
+      required: true,
+    },
+    suggestion: {
+      type: String,
+      required: true,
+    },
+    category: {
+      type: String,
+      enum: ["academic", "social", "emotional", "behavioral", "general"],
+      default: "general",
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium",
+    },
+    isImplemented: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    timestamps: true,
+  },
+)
 
-// All admin routes are protected by both `protect` (authentication) and `admin` (role check) middleware
-router.get("/dashboard", protect, admin, getDashboardData)
-router.get("/users", protect, admin, getAllUsers)
-router.put("/users/:id/status", protect, admin, updateUserStatus) // Correct path: /api/admin/users/:id/status
+const Suggestion = mongoose.model("Suggestion", suggestionSchema)
 
-export default router;
+export default Suggestion;

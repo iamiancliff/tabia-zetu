@@ -1,5 +1,10 @@
 import express from "express"
-import { getSuggestions, generateSuggestionForStudent, markSuggestionImplemented, deleteSuggestion } from "../controllers/suggestionController.js"
+import {
+  getSuggestions,
+  generateSuggestionForStudent,
+  markSuggestionImplemented,
+  deleteSuggestion,
+} from "../controllers/suggestionController.js"
 import { protect } from "../middleware/auth.js"
 
 const router = express.Router()
