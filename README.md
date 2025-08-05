@@ -122,7 +122,7 @@ This is an actively developed MVP. Designed and built by a 2-person team as part
 ## 📨 Feedback / Contributions
 
 Want to contribute or partner?  
-Open an issue or contact the team at: **[iancliff15@gmail.com.com]**
+Open an issue or contact the team at: **[iancliff15@gmail.com] and [munyaopatrick002@gmail.com]** 
 
 ---
 
