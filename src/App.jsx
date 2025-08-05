@@ -1,7 +1,7 @@
 "use client"
+import { Routes, Route, Navigate } from "react-router-dom"
+import { useAuth } from "./context/AuthContext" // Keep useAuth import
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import { AuthProvider, useAuth } from "./context/AuthContext"
 import LandingPage from "./pages/LandingPage"
 import Dashboard from "./pages/Dashboard"
 import Students from "./pages/Students"
@@ -17,7 +17,6 @@ import Signup from "./pages/Signup"
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100">
@@ -28,14 +27,12 @@ const ProtectedRoute = ({ children }) => {
       </div>
     )
   }
-
   return isAuthenticated ? children : <Navigate to="/" replace />
 }
 
 // Admin Route Component
 const AdminRoute = ({ children }) => {
   const { user, isAuthenticated, loading } = useAuth()
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100">
@@ -46,14 +43,11 @@ const AdminRoute = ({ children }) => {
       </div>
     )
   }
-
   if (!isAuthenticated) {
     return <Navigate to="/" replace />
   }
-
   // Check if user is admin
-  const isAdmin = user?.email === "admin@tabiazetu.co.ke"
-
+  const isAdmin = user?.role === "admin" // Use user.role from backend
   return isAdmin ? children : <Navigate to="/dashboard" replace />
 }
 
@@ -102,90 +96,83 @@ const HelpPage = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardRouter />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/students"
-              element={
-                <ProtectedRoute>
-                  <Students />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/behavior-log"
-              element={
-                <ProtectedRoute>
-                  <BehaviorLog />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teachers"
-              element={
-                <ProtectedRoute>
-                  <Teachers />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin-settings"
-              element={
-                <AdminRoute>
-                  <AdminSettings />
-                </AdminRoute>
-              }
-            />
-            <Route
-              path="/help"
-              element={
-                <ProtectedRoute>
-                  <HelpPage />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardRouter />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/students"
+        element={
+          <ProtectedRoute>
+            <Students />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/behavior-log"
+        element={
+          <ProtectedRoute>
+            <BehaviorLog />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <Reports />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teachers"
+        element={
+          <ProtectedRoute>
+            <Teachers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-settings"
+        element={
+          <AdminRoute>
+            <AdminSettings />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/help"
+        element={
+          <ProtectedRoute>
+            <HelpPage />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   )
 }
 
 // Dashboard Router Component to handle admin vs teacher dashboard
 const DashboardRouter = () => {
   const { user } = useAuth()
-  const isAdmin = user?.email === "admin@tabiazetu.co.ke"
-
+  const isAdmin = user?.role === "admin" // Use user.role from backend
   return isAdmin ? <AdminDashboard /> : <Dashboard />
 }
 
-export default App;
+export default App

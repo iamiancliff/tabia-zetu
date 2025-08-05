@@ -18,11 +18,17 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null)
 
   const login = async (email, password) => {
+    console.log("🔵 [FRONTEND LOGIN] Starting login process...")
+    console.log("🔵 [FRONTEND LOGIN] Email:", email)
+    console.log("🔵 [FRONTEND LOGIN] Password length:", password?.length || 0)
+    
     try {
       setLoading(true)
+      console.log("🔵 [FRONTEND LOGIN] Loading state set to true")
 
       // Check for admin auto-login
       if (email === "admin@tabiazetu.co.ke" && password === "admin123") {
+        console.log("🔵 [FRONTEND LOGIN] Admin login detected, using mock admin")
         const adminUser = {
           id: "admin-1",
           email: "admin@tabiazetu.co.ke",
@@ -41,12 +47,22 @@ export const AuthProvider = ({ children }) => {
         setToken(mockToken)
         setUser(adminUser)
 
+        console.log("✅ [FRONTEND LOGIN] Admin login successful")
         return { success: true, user: adminUser }
       }
 
       // Try backend authentication first
+      console.log("🔵 [FRONTEND LOGIN] Attempting backend authentication...")
+      console.log("🔵 [FRONTEND LOGIN] API URL:", import.meta.env.VITE_API_URL || "http://localhost:5000/api")
+      
       try {
-        const response = await fetch("/api/auth/login", {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const loginUrl = `${apiUrl}/auth/login`
+        
+        console.log("🔵 [FRONTEND LOGIN] Making request to:", loginUrl)
+        console.log("🔵 [FRONTEND LOGIN] Request payload:", { email, password: "***" })
+        
+        const response = await fetch(loginUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -54,19 +70,32 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify({ email, password }),
         })
 
+        console.log("🔵 [FRONTEND LOGIN] Response status:", response.status)
+        console.log("🔵 [FRONTEND LOGIN] Response headers:", Object.fromEntries(response.headers.entries()))
+
         if (response.ok) {
           const data = await response.json()
+          console.log("✅ [FRONTEND LOGIN] Backend login successful")
+          console.log("✅ [FRONTEND LOGIN] User data:", { ...data, token: "***" })
+          
           localStorage.setItem("token", data.token)
-          localStorage.setItem("user", JSON.stringify(data.user))
+          localStorage.setItem("user", JSON.stringify(data))
           setToken(data.token)
-          setUser(data.user)
-          return { success: true, user: data.user }
+          setUser(data)
+          return { success: true, user: data }
+        } else {
+          const errorData = await response.text()
+          console.log("❌ [FRONTEND LOGIN] Backend login failed")
+          console.log("❌ [FRONTEND LOGIN] Error response:", errorData)
+          throw new Error(`Backend login failed: ${response.status} - ${errorData}`)
         }
       } catch (backendError) {
-        console.log("Backend not available, using mock authentication")
+        console.log("❌ [FRONTEND LOGIN] Backend error:", backendError.message)
+        console.log("🔵 [FRONTEND LOGIN] Falling back to mock authentication")
       }
 
       // Fallback to mock authentication
+      console.log("🔵 [FRONTEND LOGIN] Using mock authentication")
       const mockUser = {
         id: Date.now().toString(),
         email,
@@ -85,27 +114,45 @@ export const AuthProvider = ({ children }) => {
       setToken(mockToken)
       setUser(mockUser)
 
+      console.log("✅ [FRONTEND LOGIN] Mock login successful")
       return { success: true, user: mockUser }
     } catch (error) {
-      console.error("Login error:", error)
+      console.error("❌ [FRONTEND LOGIN] Login error:", error)
       return { success: false, error: "Login failed. Please try again." }
     } finally {
       setLoading(false)
+      console.log("🔵 [FRONTEND LOGIN] Loading state set to false")
     }
   }
 
   const signup = async (userData) => {
+    console.log("🔵 [FRONTEND SIGNUP] Starting signup process...")
+    console.log("🔵 [FRONTEND SIGNUP] User data:", { ...userData, password: "***" })
+    
     try {
       setLoading(true)
+      console.log("🔵 [FRONTEND SIGNUP] Loading state set to true")
 
       // Validate required fields
       if (!userData.firstName || !userData.lastName || !userData.email || !userData.password || !userData.school) {
+        console.log("❌ [FRONTEND SIGNUP] Validation failed - missing required fields")
         throw new Error("Please fill in all required fields")
       }
 
+      console.log("✅ [FRONTEND SIGNUP] Validation passed")
+
       // Try backend registration first
+      console.log("🔵 [FRONTEND SIGNUP] Attempting backend registration...")
+      console.log("🔵 [FRONTEND SIGNUP] API URL:", import.meta.env.VITE_API_URL || "http://localhost:5000/api")
+      
       try {
-        const response = await fetch("/api/auth/register", {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const registerUrl = `${apiUrl}/auth/register`
+        
+        console.log("🔵 [FRONTEND SIGNUP] Making request to:", registerUrl)
+        console.log("🔵 [FRONTEND SIGNUP] Request payload:", { ...userData, password: "***" })
+        
+        const response = await fetch(registerUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -113,21 +160,35 @@ export const AuthProvider = ({ children }) => {
           body: JSON.stringify(userData),
         })
 
+        console.log("🔵 [FRONTEND SIGNUP] Response status:", response.status)
+        console.log("🔵 [FRONTEND SIGNUP] Response headers:", Object.fromEntries(response.headers.entries()))
+
         if (response.ok) {
           const data = await response.json()
+          console.log("✅ [FRONTEND SIGNUP] Backend registration successful")
+          console.log("✅ [FRONTEND SIGNUP] User data:", { ...data, token: "***" })
+          
           localStorage.setItem("token", data.token)
-          localStorage.setItem("user", JSON.stringify(data.user))
+          localStorage.setItem("user", JSON.stringify(data))
           setToken(data.token)
-          setUser(data.user)
-          return { success: true, user: data.user }
+          setUser(data)
+          return { success: true, user: data }
+        } else {
+          const errorData = await response.text()
+          console.log("❌ [FRONTEND SIGNUP] Backend registration failed")
+          console.log("❌ [FRONTEND SIGNUP] Error response:", errorData)
+          throw new Error(`Backend registration failed: ${response.status} - ${errorData}`)
         }
       } catch (backendError) {
-        console.log("Backend not available, using mock registration")
+        console.log("❌ [FRONTEND SIGNUP] Backend error:", backendError.message)
+        console.log("🔵 [FRONTEND SIGNUP] Falling back to mock registration")
       }
 
       // Fallback to mock registration
+      console.log("🔵 [FRONTEND SIGNUP] Using mock registration")
       const existingUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
       if (existingUsers.some((user) => user.email === userData.email)) {
+        console.log("❌ [FRONTEND SIGNUP] User already exists in mock storage")
         throw new Error("An account with this email already exists")
       }
 
@@ -157,12 +218,14 @@ export const AuthProvider = ({ children }) => {
       setToken(mockToken)
       setUser(newUser)
 
+      console.log("✅ [FRONTEND SIGNUP] Mock registration successful")
       return { success: true, user: newUser }
     } catch (error) {
-      console.error("Signup error:", error)
+      console.error("❌ [FRONTEND SIGNUP] Signup error:", error)
       return { success: false, error: error.message || "Signup failed. Please try again." }
     } finally {
       setLoading(false)
+      console.log("🔵 [FRONTEND SIGNUP] Loading state set to false")
     }
   }
 

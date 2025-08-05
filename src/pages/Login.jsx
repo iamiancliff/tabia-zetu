@@ -25,6 +25,9 @@ const Login = () => {
     const result = await login(loginData.email, loginData.password)
     if (!result.success) {
       setError(result.error)
+    } else {
+      setError(""); // Clear error on success
+      // Optionally, redirect to dashboard here if not handled in AuthContext
     }
     setIsLoading(false)
   }
@@ -37,6 +40,9 @@ const Login = () => {
     const result = await login("admin@tabiazetu.co.ke", "admin123")
     if (!result.success) {
       setError("Admin login failed")
+    } else {
+      setError(""); // Clear error on success
+      // Optionally, redirect to dashboard here if not handled in AuthContext
     }
     setIsLoading(false)
   }

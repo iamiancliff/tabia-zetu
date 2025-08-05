@@ -63,11 +63,12 @@ const Dashboard = () => {
 
       // Try to load from backend first
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const [behaviorsResponse, studentsResponse] = await Promise.all([
-          fetch("/api/behaviors", {
+          fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
-          fetch("/api/students", {
+          fetch(`${apiUrl}/students`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ])
@@ -81,13 +82,9 @@ const Dashboard = () => {
           throw new Error("Backend not available")
         }
       } catch (backendError) {
-        console.log("Using mock data")
-        // Load from localStorage or use mock data
-        const storedBehaviors = JSON.parse(localStorage.getItem("behaviors") || "[]")
-        const storedStudents = JSON.parse(localStorage.getItem("students") || "[]")
-
-        setBehaviors(storedBehaviors.length > 0 ? storedBehaviors : mockBehaviors)
-        setStudents(storedStudents.length > 0 ? storedStudents : mockStudents)
+        alert("Failed to connect to backend. Please check your server and network.");
+        setBehaviors([]);
+        setStudents([]);
       }
     } catch (error) {
       console.error("Failed to load data:", error)
@@ -109,7 +106,8 @@ const Dashboard = () => {
 
     try {
       // Try to save to backend
-      const response = await fetch("/api/behaviors", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/behaviors`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -125,11 +123,7 @@ const Dashboard = () => {
         throw new Error("Backend save failed")
       }
     } catch (error) {
-      console.log("Saving to localStorage")
-      // Save to localStorage as fallback
-      const updatedBehaviors = [newBehavior, ...behaviors]
-      setBehaviors(updatedBehaviors)
-      localStorage.setItem("behaviors", JSON.stringify(updatedBehaviors))
+      alert("Failed to connect to backend. Please check your server and network.");
     }
 
     setShowAddForm(false)

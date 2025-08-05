@@ -98,11 +98,12 @@ const Students = () => {
 
       // Try to load from backend first
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const [studentsResponse, behaviorsResponse] = await Promise.all([
-          fetch("/api/students", {
+          fetch(`${apiUrl}/students`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
-          fetch("/api/behaviors", {
+          fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ])
@@ -116,13 +117,9 @@ const Students = () => {
           throw new Error("Backend not available")
         }
       } catch (backendError) {
-        console.log("Using localStorage data")
-        // Load from localStorage or use mock data
-        const storedStudents = JSON.parse(localStorage.getItem("students") || "[]")
-        const storedBehaviors = JSON.parse(localStorage.getItem("behaviors") || "[]")
-
-        setStudents(storedStudents.length > 0 ? storedStudents : mockStudents)
-        setBehaviors(storedBehaviors.length > 0 ? storedBehaviors : [])
+        alert("Failed to connect to backend. Please check your server and network.");
+        setStudents([]);
+        setBehaviors([]);
       }
     } catch (error) {
       console.error("Failed to load data:", error)
@@ -177,7 +174,8 @@ const Students = () => {
 
     try {
       // Try to save to backend
-      const response = await fetch("/api/students", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/students`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -223,7 +221,8 @@ const Students = () => {
 
     try {
       // Try to update in backend
-      const response = await fetch(`/api/students/${editingStudent.id}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/students/${editingStudent.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -257,7 +256,8 @@ const Students = () => {
 
     try {
       // Try to delete from backend
-      const response = await fetch(`/api/students/${studentId}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/students/${studentId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })

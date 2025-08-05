@@ -49,11 +49,12 @@ const Reports = () => {
 
       // Try to load from backend first
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const [behaviorsResponse, studentsResponse] = await Promise.all([
-          fetch("/api/behaviors", {
+          fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
-          fetch("/api/students", {
+          fetch(`${apiUrl}/students`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ])

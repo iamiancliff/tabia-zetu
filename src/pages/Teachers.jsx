@@ -65,58 +65,8 @@ const Teachers = () => {
         throw new Error("Failed to fetch teachers")
       }
     } catch (error) {
-      console.error("Failed to load teachers:", error)
-      // Fallback to mock data
-      setTeachers([
-        {
-          id: "1",
-          firstName: "Mary",
-          lastName: "Wanjiku",
-          email: "mary@school.co.ke",
-          school: "Nairobi Primary School",
-          county: "Nairobi",
-          students: 25,
-          active: true,
-          lastLogin: "2 hours ago",
-          createdAt: "2024-01-10",
-        },
-        {
-          id: "2",
-          firstName: "James",
-          lastName: "Ochieng",
-          email: "james@school.co.ke",
-          school: "Kisumu Secondary School",
-          county: "Kisumu",
-          students: 22,
-          active: true,
-          lastLogin: "1 day ago",
-          createdAt: "2024-01-08",
-        },
-        {
-          id: "3",
-          firstName: "Sarah",
-          lastName: "Kimani",
-          email: "sarah@school.co.ke",
-          school: "Nakuru Girls High School",
-          county: "Nakuru",
-          students: 28,
-          active: false,
-          lastLogin: "3 days ago",
-          createdAt: "2024-01-05",
-        },
-        {
-          id: "4",
-          firstName: "Peter",
-          lastName: "Mwangi",
-          email: "peter@school.co.ke",
-          school: "Eldoret Boys School",
-          county: "Eldoret",
-          students: 20,
-          active: true,
-          lastLogin: "5 hours ago",
-          createdAt: "2024-01-12",
-        },
-      ])
+      alert("Failed to connect to backend. Please check your server and network.");
+      setTeachers([]);
     } finally {
       setIsLoading(false)
     }

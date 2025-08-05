@@ -32,11 +32,12 @@ const AdminDashboard = () => {
 
       // Try to load from backend first
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const [teachersResponse, behaviorsResponse] = await Promise.all([
-          fetch("/api/admin/teachers", {
+          fetch(`${apiUrl}/admin/teachers`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
-          fetch("/api/admin/behaviors", {
+          fetch(`${apiUrl}/admin/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ])
@@ -50,15 +51,9 @@ const AdminDashboard = () => {
           throw new Error("Backend not available")
         }
       } catch (backendError) {
-        console.log("Using localStorage data")
-        // Load from localStorage
-        const storedUsers = JSON.parse(localStorage.getItem("allUsers") || "[]")
-        const storedBehaviors = JSON.parse(localStorage.getItem("behaviors") || "[]")
-
-        // Filter out admin users
-        const teacherUsers = storedUsers.filter((u) => u.email !== "admin@tabiazetu.co.ke")
-        setTeachers(teacherUsers.length > 0 ? teacherUsers : mockTeachers)
-        setBehaviors(storedBehaviors)
+        alert("Failed to connect to backend. Please check your server and network.");
+        setTeachers([]);
+        setBehaviors([]);
       }
     } catch (error) {
       console.error("Failed to load data:", error)
@@ -159,7 +154,8 @@ const AdminDashboard = () => {
       if (deleteType === "teacher") {
         // Try to delete from backend
         try {
-          const response = await fetch(`/api/admin/teachers/${itemToDelete.id}`, {
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const response = await fetch(`${apiUrl}/admin/teachers/${itemToDelete.id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           })
@@ -188,7 +184,8 @@ const AdminDashboard = () => {
 
         try {
           // Try to delete from backend
-          const response = await fetch("/api/admin/schools", {
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const response = await fetch(`${apiUrl}/admin/schools`, {
             method: "DELETE",
             headers: {
               "Content-Type": "application/json",
