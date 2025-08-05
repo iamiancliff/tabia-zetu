@@ -1,65 +1,252 @@
-const User = require("../models/User");
-const jwt = require("jsonwebtoken");
+import asyncHandler from "express-async-handler"
+import User from "../models/User.js"
+import generateToken from "../utils/generateToken.js"
 
-// Generate JWT
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+// @desc    Register new user
+// @route   POST /api/auth/register
+// @access  Public
+const registerUser = asyncHandler(async (req, res) => {
+  console.log("🔵 [BACKEND REGISTER] ===== REGISTRATION START =====")
+  console.log("🔵 [BACKEND REGISTER] Request received:", {
+    body: req.body,
+    headers: req.headers,
+    method: req.method,
+    url: req.url,
+    ip: req.ip
+  })
 
-// LOGIN
-exports.login = async (req, res) => {
+  const { firstName, lastName, email, password, role, school } = req.body
+
+  console.log("🔵 [BACKEND REGISTER] Extracted data:", {
+    firstName,
+    lastName,
+    email,
+    password: password ? "***" : "MISSING",
+    role,
+    school,
+    county: req.body.county
+  })
+
+  // Basic validation
+  if (!firstName || !lastName || !email || !password) {
+    console.log("❌ [BACKEND REGISTER] Validation failed - missing required fields")
+    console.log("❌ [BACKEND REGISTER] Missing fields:", {
+      firstName: !firstName,
+      lastName: !lastName,
+      email: !email,
+      password: !password
+    })
+    res.status(400)
+    throw new Error("Please enter all required fields")
+  }
+
+  console.log("✅ [BACKEND REGISTER] Basic validation passed")
+
+  // Check if user exists
+  console.log("🔍 [BACKEND REGISTER] Checking if user exists with email:", email)
   try {
-    const { email, password } = req.body;
+  const userExists = await User.findOne({ email })
+    console.log("🔍 [BACKEND REGISTER] User exists check result:", userExists ? "EXISTS" : "NOT FOUND")
+    
+  if (userExists) {
+      console.log("❌ [BACKEND REGISTER] User already exists:", email)
+    res.status(400)
+    throw new Error("User already exists")
+    }
+  } catch (dbError) {
+    console.log("❌ [BACKEND REGISTER] Database error during user check:", dbError.message)
+    throw dbError
+  }
 
-    // Check if user exists
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(404).json({ message: "User not found with this email" });
+  console.log("✅ [BACKEND REGISTER] User does not exist, proceeding to create")
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid email or password" });
+  // Create user
+  const userData = {
+    firstName,
+    lastName,
+    email,
+    password,
+    role: role || "teacher", // Explicitly set role
+    school: school, // Always include school field
+    county: req.body.county || "default-county", // Optional county field
+  }
 
-    // Respond with token and user info
-    res.status(200).json({
-      message: "Login successful",
-      token: generateToken(user._id),
-      user: {
-        id: user._id,
-        name: user.name,
+  console.log("🔵 [BACKEND REGISTER] Attempting to create user with data:", {
+    ...userData,
+    password: "***"
+  })
+
+  try {
+    console.log("🔵 [BACKEND REGISTER] Calling User.create()...")
+    const user = await User.create(userData)
+    console.log("✅ [BACKEND REGISTER] User.create() completed successfully")
+    console.log("✅ [BACKEND REGISTER] User created successfully:", {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      school: user.school
+    })
+
+    if (user) {
+      console.log("✅ [BACKEND REGISTER] User object is valid, generating token...")
+      const token = generateToken(user._id)
+      console.log("✅ [BACKEND REGISTER] Token generated successfully")
+      
+      console.log("✅ [BACKEND REGISTER] Sending success response")
+      const responseData = {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        county: user.county,
+        school: user.school,
+        token: token,
+      }
+      console.log("✅ [BACKEND REGISTER] Response data:", { ...responseData, token: "***" })
+      
+      res.status(201).json(responseData)
+      console.log("✅ [BACKEND REGISTER] ===== REGISTRATION SUCCESS =====")
+    } else {
+      console.log("❌ [BACKEND REGISTER] User creation returned null/undefined")
+      res.status(400)
+      throw new Error("Invalid user data")
+    }
+  } catch (error) {
+    console.log("❌ [BACKEND REGISTER] Error creating user:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    })
+    console.log("❌ [BACKEND REGISTER] ===== REGISTRATION FAILED =====")
+    throw error
+  }
+})
+
+// @desc    Authenticate user & get token
+// @route   POST /api/auth/login
+// @access  Public
+const loginUser = asyncHandler(async (req, res) => {
+  console.log("🔵 [BACKEND LOGIN] ===== LOGIN START =====")
+  console.log("🔵 [BACKEND LOGIN] Request received:", {
+    body: { ...req.body, password: req.body.password ? "***" : "MISSING" },
+    method: req.method,
+    url: req.url,
+    ip: req.ip
+  })
+
+  const { email, password } = req.body
+
+  console.log("🔍 [BACKEND LOGIN] Looking for user with email:", email)
+
+  // Check for user email
+  try {
+    console.log("🔍 [BACKEND LOGIN] Calling User.findOne()...")
+  const user = await User.findOne({ email })
+    console.log("🔍 [BACKEND LOGIN] User.findOne() completed")
+
+  if (user) {
+      console.log("✅ [BACKEND LOGIN] User found:", {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
         role: user.role
+      })
+      
+      console.log("🔍 [BACKEND LOGIN] Calling user.matchPassword()...")
+      const isPasswordValid = await user.matchPassword(password)
+      console.log("🔍 [BACKEND LOGIN] Password validation result:", isPasswordValid)
+
+      if (isPasswordValid) {
+        console.log("✅ [BACKEND LOGIN] Password is valid, generating token...")
+        const token = generateToken(user._id)
+        console.log("✅ [BACKEND LOGIN] Token generated successfully")
+        
+        console.log("✅ [BACKEND LOGIN] Login successful, sending response")
+        const responseData = {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          county: user.county,
+          school: user.school,
+          token: token,
+        }
+        console.log("✅ [BACKEND LOGIN] Response data:", { ...responseData, token: "***" })
+        
+        res.json(responseData)
+        console.log("✅ [BACKEND LOGIN] ===== LOGIN SUCCESS =====")
+      } else {
+        console.log("❌ [BACKEND LOGIN] Invalid password for user:", email)
+        res.status(401)
+        throw new Error("Invalid email or password")
       }
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    } else {
+      console.log("❌ [BACKEND LOGIN] User not found with email:", email)
+      res.status(401)
+      throw new Error("Invalid email or password")
+    }
+  } catch (dbError) {
+    console.log("❌ [BACKEND LOGIN] Database error:", dbError.message)
+    console.log("❌ [BACKEND LOGIN] ===== LOGIN FAILED =====")
+    throw dbError
   }
-};
+})
 
-// REGISTER
-exports.register = async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
-
-    // Check if already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: "User already exists with this email" });
-
-    // Create user
-    const user = await User.create({ name, email, password, role });
-
-    res.status(201).json({
-      message: "Registration successful",
-      token: generateToken(user._id),
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Registration failed", error: error.message });
+// @desc    Get user profile
+// @route   GET /api/auth/me
+// @access  Private
+const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password")
+  if (user) {
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      school: user.school,
+      county: user.county,
+      isActive: user.isActive,
+    })
+  } else {
+    res.status(404)
+    throw new Error("User not found")
   }
-};
+})
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+
+  if (user) {
+    user.firstName = req.body.firstName || user.firstName
+    user.lastName = req.body.lastName || user.lastName
+    user.email = req.body.email || user.email
+    if (req.body.password) {
+      user.password = req.body.password // Password hashing handled by pre-save hook
+    }
+    user.school = req.body.school || user.school
+
+    const updatedUser = await user.save()
+
+    res.json({
+      _id: updatedUser._id,
+      firstName: updatedUser.firstName,
+      lastName: updatedUser.lastName,
+      email: updatedUser.email,
+      county: updatedUser.county,
+      school: updatedUser.school,
+      token: generateToken(updatedUser._id),
+    })
+  } else {
+    res.status(404)
+    throw new Error("User not found")
+  }
+})
+
+export { registerUser, loginUser, getMe, updateProfile }

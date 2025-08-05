@@ -1,13 +1,45 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"
 
-const studentSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  stream: { type: String, required: true },
-  subjects: [{ type: String }],
-  teacher: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  classLevel: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+const studentSchema = mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+    },
+    stream: {
+      type: String,
+      required: true,
+    },
+    age: {
+      type: Number,
+      required: true,
+    },
+    subjects: [
+      {
+        type: String,
+      },
+    ],
+    teacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    school: {
+      type: String,
+      required: true,
+    },
+    parentContact: {
+      type: String,
+    },
+    notes: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  },
+)
 
-module.exports = mongoose.model("Student", studentSchema);
+const Student = mongoose.model("Student", studentSchema)
+
+export default Student;
