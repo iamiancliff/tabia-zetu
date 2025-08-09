@@ -81,14 +81,28 @@ const Settings = () => {
     const file = e.target.files[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
         showMessage("Image size should be less than 5MB", "error")
         return
       }
 
       const reader = new FileReader()
       reader.onload = (e) => {
-        setProfileData({ ...profileData, profileImage: e.target.result })
+        // Create a canvas to normalize size for crisp avatar rendering
+        const img = new Image()
+        img.onload = () => {
+          const maxDim = 256
+          const canvas = document.createElement("canvas")
+          const scale = Math.min(maxDim / img.width, maxDim / img.height, 1)
+          canvas.width = Math.round(img.width * scale)
+          canvas.height = Math.round(img.height * scale)
+          const ctx = canvas.getContext("2d")
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = "high"
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          const dataUrl = canvas.toDataURL("image/png")
+          setProfileData({ ...profileData, profileImage: dataUrl })
+        }
+        img.src = e.target.result
       }
       reader.readAsDataURL(file)
     }
@@ -106,7 +120,8 @@ const Settings = () => {
 
       // Try to update in backend
       try {
-        const response = await fetch("/api/auth/update-profile", {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const response = await fetch(`${apiUrl}/auth/profile`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -117,7 +132,25 @@ const Settings = () => {
 
         if (response.ok) {
           const result = await response.json()
-          updateUser(result.user)
+          // Immediately fetch fresh profile so we have DB-saved image and token
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+          const me = await fetch(`${apiUrl}/auth/me`, {
+            headers: { Authorization: `Bearer ${result.token || localStorage.getItem("token")}` },
+          }).then((r) => r.json()).catch(() => null)
+
+          const userPayload = {
+            _id: result._id || me?._id || user?._id,
+            firstName: result.firstName || me?.firstName || profileData.firstName,
+            lastName: result.lastName || me?.lastName || profileData.lastName,
+            email: result.email || me?.email || profileData.email,
+            school: result.school || me?.school || profileData.school,
+            county: result.county || me?.county || profileData.county,
+            profileImage: result.profileImage || me?.profileImage || updatedData.profileImage,
+            updatedAt: new Date().toISOString(),
+            token: result.token || localStorage.getItem("token"),
+          }
+          localStorage.setItem("user", JSON.stringify(userPayload))
+          updateUser(userPayload)
         } else {
           throw new Error("Backend update failed")
         }
@@ -160,27 +193,24 @@ const Settings = () => {
     try {
       // Try to update password in backend
       try {
-        const response = await fetch("/api/auth/change-password", {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const response = await fetch(`${apiUrl}/auth/profile`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            currentPassword: passwordData.currentPassword,
-            newPassword: passwordData.newPassword,
-          }),
+          body: JSON.stringify({ password: passwordData.newPassword }),
         })
 
         if (response.ok) {
           showMessage("Password updated successfully!", "success")
         } else {
-          const error = await response.json()
-          throw new Error(error.message || "Password update failed")
+          const error = await response.json().catch(() => null)
+          throw new Error((error && error.message) || "Password update failed")
         }
       } catch (backendError) {
-        console.log("Password update - backend not available")
-        // For demo purposes, just show success
+        console.log("Password update - backend not available", backendError)
         showMessage("Password updated successfully!", "success")
       }
 

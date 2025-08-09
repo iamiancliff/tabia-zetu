@@ -42,7 +42,7 @@ Whether in CBC or 8-4-4 setups, TabiaZetu is designed to **support — not burde
 - ✅ **Visual Reports** (trends over time per student or stream)
 - ✅ **Suggestion Engine** (simple rules-based advice)
 - ✅ **Feedback Loop** on suggestions (was it helpful?)
-- ✅ **Admin Management** 
+- ✅ **Admin Management** *(optional)*
 
 ---
 
@@ -122,7 +122,7 @@ This is an actively developed MVP. Designed and built by a 2-person team as part
 ## 📨 Feedback / Contributions
 
 Want to contribute or partner?  
-Open an issue or contact the team at: **[iancliff15@gmail.com] and [munyaopatrick002@gmail.com]** 
+Open an issue or contact the team at: **[iancliff15@gmail.com.com]**
 
 ---
 

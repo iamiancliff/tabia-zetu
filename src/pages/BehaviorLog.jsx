@@ -43,11 +43,12 @@ const BehaviorLog = () => {
 
       // Try to load from backend first
       try {
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const [behaviorsResponse, studentsResponse] = await Promise.all([
-          fetch("/api/behaviors", {
+          fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
-          fetch("/api/students", {
+          fetch(`${apiUrl}/students`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           }),
         ])
@@ -55,8 +56,13 @@ const BehaviorLog = () => {
         if (behaviorsResponse.ok && studentsResponse.ok) {
           const behaviorsData = await behaviorsResponse.json()
           const studentsData = await studentsResponse.json()
-          setBehaviors(behaviorsData.behaviors || [])
-          setStudents(studentsData.students || [])
+          const studentMap = new Map((Array.isArray(studentsData) ? studentsData : []).map((s) => [s._id || s.id, s.name]))
+          const normalizedBehaviors = (Array.isArray(behaviorsData) ? behaviorsData : []).map((b) => ({
+            ...b,
+            studentDisplayName: (b.student && b.student.name) ? b.student.name : studentMap.get(b.student) || b.student,
+          }))
+          setBehaviors(normalizedBehaviors)
+          setStudents(Array.isArray(studentsData) ? studentsData : [])
         } else {
           throw new Error("Backend not available")
         }
@@ -79,34 +85,57 @@ const BehaviorLog = () => {
   }
 
   const handleAddBehavior = async (behaviorData) => {
-    const newBehavior = {
-      id: Date.now().toString(),
-      ...behaviorData,
-      teacher: user?.id,
-      createdAt: getKenyaTime(),
+    // Map form data to backend payload
+    const payload = {
+      studentId: behaviorData.student, // BehaviorForm now provides _id value
+      behaviorType: behaviorData.behaviorType,
+      subject: behaviorData.subject,
+      timeOfDay: behaviorData.timeOfDay,
+      severity: behaviorData.severity,
+      notes: behaviorData.description,
+      outcome: behaviorData.outcome,
+      date: new Date().toISOString(),
     }
 
     try {
       // Try to save to backend
-      const response = await fetch("/api/behaviors", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/behaviors`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(newBehavior),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        const savedBehavior = await response.json()
-        setBehaviors((prev) => [savedBehavior.behavior, ...prev])
+        // Optimistically append a display entry, then refresh
+        const studentName = students.find((s) => (s._id || s.id) === payload.studentId)?.name || payload.studentId
+        const local = {
+          createdAt: new Date().toISOString(),
+          behaviorType: payload.behaviorType,
+          subject: payload.subject,
+          timeOfDay: payload.timeOfDay,
+          severity: payload.severity,
+          description: payload.notes,
+          outcome: payload.outcome,
+          studentDisplayName: studentName,
+        }
+        setBehaviors((prev) => [local, ...prev])
+        await loadData()
       } else {
         throw new Error("Backend save failed")
       }
     } catch (error) {
       console.log("Saving to localStorage")
       // Save to localStorage as fallback
-      const updatedBehaviors = [newBehavior, ...behaviors]
+      const localBehavior = {
+        id: Date.now().toString(),
+        ...behaviorData,
+        createdAt: new Date().toISOString(),
+      }
+      const updatedBehaviors = [localBehavior, ...behaviors]
       setBehaviors(updatedBehaviors)
       localStorage.setItem("behaviors", JSON.stringify(updatedBehaviors))
     }
@@ -357,7 +386,7 @@ const BehaviorLog = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <div className="font-medium text-teal-900">{behavior.student}</div>
+                                <div className="font-medium text-teal-900">{behavior.studentDisplayName || ((behavior.student && behavior.student.name) ? behavior.student.name : behavior.student)}</div>
                               </TableCell>
                               <TableCell>
                                 <Badge className={getBehaviorTypeColor(behavior.behaviorType)}>

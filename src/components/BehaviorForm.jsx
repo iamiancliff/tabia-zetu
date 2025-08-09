@@ -141,8 +141,8 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
             </SelectTrigger>
             <SelectContent>
               {students.map((student) => (
-                <SelectItem key={student.id} value={student.name}>
-                  {student.name} ({student.class})
+                <SelectItem key={student._id || student.id} value={student._id || student.id}>
+                  {student.name} {student.class ? `(${student.class})` : student.stream ? `(${student.stream})` : ""}
                 </SelectItem>
               ))}
             </SelectContent>

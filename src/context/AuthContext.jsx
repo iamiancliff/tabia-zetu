@@ -24,101 +24,30 @@ export const AuthProvider = ({ children }) => {
     
     try {
       setLoading(true)
-      console.log("🔵 [FRONTEND LOGIN] Loading state set to true")
 
-      // Check for admin auto-login
-      if (email === "admin@tabiazetu.co.ke" && password === "admin123") {
-        console.log("🔵 [FRONTEND LOGIN] Admin login detected, using mock admin")
-        const adminUser = {
-          id: "admin-1",
-          email: "admin@tabiazetu.co.ke",
-          firstName: "System",
-          lastName: "Administrator",
-          role: "admin",
-          school: "TabiaZetu System",
-          county: "Nairobi",
-        }
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const loginUrl = `${apiUrl}/auth/login`
 
-        const mockToken = "admin-jwt-token-" + Date.now()
+      const response = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
 
-        localStorage.setItem("token", mockToken)
-        localStorage.setItem("user", JSON.stringify(adminUser))
-
-        setToken(mockToken)
-        setUser(adminUser)
-
-        console.log("✅ [FRONTEND LOGIN] Admin login successful")
-        return { success: true, user: adminUser }
+      if (!response.ok) {
+        const message = await response.text().catch(() => "Login failed")
+        return { success: false, error: message || "Invalid email or password" }
       }
 
-      // Try backend authentication first
-      console.log("🔵 [FRONTEND LOGIN] Attempting backend authentication...")
-      console.log("🔵 [FRONTEND LOGIN] API URL:", import.meta.env.VITE_API_URL || "http://localhost:5000/api")
-      
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-        const loginUrl = `${apiUrl}/auth/login`
-        
-        console.log("🔵 [FRONTEND LOGIN] Making request to:", loginUrl)
-        console.log("🔵 [FRONTEND LOGIN] Request payload:", { email, password: "***" })
-        
-        const response = await fetch(loginUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email, password }),
-        })
-
-        console.log("🔵 [FRONTEND LOGIN] Response status:", response.status)
-        console.log("🔵 [FRONTEND LOGIN] Response headers:", Object.fromEntries(response.headers.entries()))
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log("✅ [FRONTEND LOGIN] Backend login successful")
-          console.log("✅ [FRONTEND LOGIN] User data:", { ...data, token: "***" })
-          
-          localStorage.setItem("token", data.token)
-          localStorage.setItem("user", JSON.stringify(data))
-          setToken(data.token)
-          setUser(data)
-          return { success: true, user: data }
-        } else {
-          const errorData = await response.text()
-          console.log("❌ [FRONTEND LOGIN] Backend login failed")
-          console.log("❌ [FRONTEND LOGIN] Error response:", errorData)
-          throw new Error(`Backend login failed: ${response.status} - ${errorData}`)
-        }
-      } catch (backendError) {
-        console.log("❌ [FRONTEND LOGIN] Backend error:", backendError.message)
-        console.log("🔵 [FRONTEND LOGIN] Falling back to mock authentication")
-      }
-
-      // Fallback to mock authentication
-      console.log("🔵 [FRONTEND LOGIN] Using mock authentication")
-      const mockUser = {
-        id: Date.now().toString(),
-        email,
-        firstName: email.split("@")[0].split(".")[0] || "Teacher",
-        lastName: email.split("@")[0].split(".")[1] || "User",
-        role: email.includes("admin") ? "admin" : "teacher",
-        school: "Demo Primary School",
-        county: "Nairobi",
-      }
-
-      const mockToken = "mock-jwt-token-" + Date.now()
-
-      localStorage.setItem("token", mockToken)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-
-      setToken(mockToken)
-      setUser(mockUser)
-
-      console.log("✅ [FRONTEND LOGIN] Mock login successful")
-      return { success: true, user: mockUser }
+      const data = await response.json()
+      // Expect a real JWT
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("user", JSON.stringify(data))
+      setToken(data.token)
+      setUser(data)
+      return { success: true, user: data }
     } catch (error) {
-      console.error("❌ [FRONTEND LOGIN] Login error:", error)
-      return { success: false, error: "Login failed. Please try again." }
+      return { success: false, error: "Unable to reach the server" }
     } finally {
       setLoading(false)
       console.log("🔵 [FRONTEND LOGIN] Loading state set to false")
@@ -131,97 +60,28 @@ export const AuthProvider = ({ children }) => {
     
     try {
       setLoading(true)
-      console.log("🔵 [FRONTEND SIGNUP] Loading state set to true")
-
-      // Validate required fields
       if (!userData.firstName || !userData.lastName || !userData.email || !userData.password || !userData.school) {
         console.log("❌ [FRONTEND SIGNUP] Validation failed - missing required fields")
         throw new Error("Please fill in all required fields")
       }
 
-      console.log("✅ [FRONTEND SIGNUP] Validation passed")
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const registerUrl = `${apiUrl}/auth/register`
 
-      // Try backend registration first
-      console.log("🔵 [FRONTEND SIGNUP] Attempting backend registration...")
-      console.log("🔵 [FRONTEND SIGNUP] API URL:", import.meta.env.VITE_API_URL || "http://localhost:5000/api")
-      
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-        const registerUrl = `${apiUrl}/auth/register`
-        
-        console.log("🔵 [FRONTEND SIGNUP] Making request to:", registerUrl)
-        console.log("🔵 [FRONTEND SIGNUP] Request payload:", { ...userData, password: "***" })
-        
-        const response = await fetch(registerUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(userData),
-        })
+      const response = await fetch(registerUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      })
 
-        console.log("🔵 [FRONTEND SIGNUP] Response status:", response.status)
-        console.log("🔵 [FRONTEND SIGNUP] Response headers:", Object.fromEntries(response.headers.entries()))
-
-        if (response.ok) {
-          const data = await response.json()
-          console.log("✅ [FRONTEND SIGNUP] Backend registration successful")
-          console.log("✅ [FRONTEND SIGNUP] User data:", { ...data, token: "***" })
-          
-          localStorage.setItem("token", data.token)
-          localStorage.setItem("user", JSON.stringify(data))
-          setToken(data.token)
-          setUser(data)
-          return { success: true, user: data }
-        } else {
-          const errorData = await response.text()
-          console.log("❌ [FRONTEND SIGNUP] Backend registration failed")
-          console.log("❌ [FRONTEND SIGNUP] Error response:", errorData)
-          throw new Error(`Backend registration failed: ${response.status} - ${errorData}`)
-        }
-      } catch (backendError) {
-        console.log("❌ [FRONTEND SIGNUP] Backend error:", backendError.message)
-        console.log("🔵 [FRONTEND SIGNUP] Falling back to mock registration")
+      if (!response.ok) {
+        const message = await response.text().catch(() => "Signup failed")
+        return { success: false, error: message || "Signup failed" }
       }
 
-      // Fallback to mock registration
-      console.log("🔵 [FRONTEND SIGNUP] Using mock registration")
-      const existingUsers = JSON.parse(localStorage.getItem("registeredUsers") || "[]")
-      if (existingUsers.some((user) => user.email === userData.email)) {
-        console.log("❌ [FRONTEND SIGNUP] User already exists in mock storage")
-        throw new Error("An account with this email already exists")
-      }
-
-      const newUser = {
-        id: Date.now().toString(),
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        school: userData.school,
-        county: userData.county || "",
-        phoneNumber: userData.phoneNumber || "",
-        teachingExperience: userData.teachingExperience || "",
-        subjects: userData.subjects || [],
-        role: "teacher",
-        createdAt: new Date().toISOString(),
-        isActive: true,
-      }
-
-      existingUsers.push(newUser)
-      localStorage.setItem("registeredUsers", JSON.stringify(existingUsers))
-
-      const mockToken = "mock-jwt-token-" + Date.now()
-
-      localStorage.setItem("token", mockToken)
-      localStorage.setItem("user", JSON.stringify(newUser))
-
-      setToken(mockToken)
-      setUser(newUser)
-
-      console.log("✅ [FRONTEND SIGNUP] Mock registration successful")
-      return { success: true, user: newUser }
+      const data = await response.json()
+      return { success: true, user: data }
     } catch (error) {
-      console.error("❌ [FRONTEND SIGNUP] Signup error:", error)
       return { success: false, error: error.message || "Signup failed. Please try again." }
     } finally {
       setLoading(false)
@@ -233,18 +93,25 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem("token")
     const storedUser = localStorage.getItem("user")
 
-    if (storedToken && storedUser) {
+    // Basic JWT shape validation: three segments separated by dots
+    const looksLikeJwt = typeof storedToken === "string" && storedToken.split(".").length === 3
+
+    if (looksLikeJwt && storedUser) {
       try {
         const userData = JSON.parse(storedUser)
         setToken(storedToken)
         setUser(userData)
         return true
-      } catch (error) {
+      } catch {
         localStorage.removeItem("token")
         localStorage.removeItem("user")
         return false
       }
     }
+
+    // Clean up any mock/invalid tokens
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
     return false
   }
 

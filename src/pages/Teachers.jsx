@@ -52,7 +52,8 @@ const Teachers = () => {
     try {
       setIsLoading(true)
       // This would be an admin endpoint to get all teachers
-      const response = await fetch("/api/admin/teachers", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const response = await fetch(`${apiUrl}/admin/teachers`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -60,7 +61,7 @@ const Teachers = () => {
 
       if (response.ok) {
         const data = await response.json()
-        setTeachers(data.teachers || [])
+        setTeachers(data.teachers || data || [])
       } else {
         throw new Error("Failed to fetch teachers")
       }
@@ -81,12 +82,12 @@ const Teachers = () => {
         })
 
         const teacher = {
-          id: response.user?.id || teachers.length + 1,
-          firstName: newTeacher.firstName,
-          lastName: newTeacher.lastName,
-          email: newTeacher.email,
-          school: newTeacher.school,
-          county: newTeacher.county,
+          id: response?._id || response?.user?._id || teachers.length + 1,
+          firstName: response?.firstName || newTeacher.firstName,
+          lastName: response?.lastName || newTeacher.lastName,
+          email: response?.email || newTeacher.email,
+          school: response?.school || newTeacher.school,
+          county: response?.county || newTeacher.county,
           students: 0,
           active: true,
           lastLogin: "Never",
@@ -103,32 +104,8 @@ const Teachers = () => {
           county: "",
         })
         setShowAddTeacher(false)
-      } catch (error) {
-        console.error("Failed to add teacher:", error)
-        // Still add to local state for demo purposes
-        const teacher = {
-          id: teachers.length + 1,
-          firstName: newTeacher.firstName,
-          lastName: newTeacher.lastName,
-          email: newTeacher.email,
-          school: newTeacher.school,
-          county: newTeacher.county,
-          students: 0,
-          active: true,
-          lastLogin: "Never",
-          createdAt: new Date().toISOString().split("T")[0],
-        }
-
-        setTeachers([...teachers, teacher])
-        setNewTeacher({
-          firstName: "",
-          lastName: "",
-          email: "",
-          password: "",
-          school: "",
-          county: "",
-        })
-        setShowAddTeacher(false)
+      } catch (e) {
+        console.error("Failed to add teacher:", e)
       }
     }
   }

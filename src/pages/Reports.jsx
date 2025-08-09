@@ -60,10 +60,25 @@ const Reports = () => {
         ])
 
         if (behaviorsResponse.ok && studentsResponse.ok) {
-          const behaviorsData = await behaviorsResponse.json()
-          const studentsData = await studentsResponse.json()
-          setBehaviors(behaviorsData.behaviors || [])
-          setStudents(studentsData.students || [])
+          const behaviorsRaw = await behaviorsResponse.json()
+          const studentsRaw = await studentsResponse.json()
+
+          const studentsArr = Array.isArray(studentsRaw) ? studentsRaw : []
+          const studentMap = new Map(studentsArr.map((s) => [s._id || s.id, s.name]))
+
+          const normalizedBehaviors = (Array.isArray(behaviorsRaw) ? behaviorsRaw : []).map((b) => {
+            const studentId = (b.student && b.student._id)
+              ? b.student._id
+              : (typeof b.student === "string" ? b.student : b.student)
+            const studentName = (b.student && b.student.name)
+              ? b.student.name
+              : (studentMap.get(studentId) || studentId)
+            const createdAt = b.date || b.createdAt || new Date().toISOString()
+            return { ...b, studentId, studentName, createdAt }
+          })
+
+          setBehaviors(normalizedBehaviors)
+          setStudents(studentsArr)
         } else {
           throw new Error("Backend not available")
         }
@@ -91,7 +106,7 @@ const Reports = () => {
 
     // Filter by student
     if (selectedStudent !== "all") {
-      filtered = filtered.filter((b) => b.student === selectedStudent)
+      filtered = filtered.filter((b) => b.studentId === selectedStudent)
     }
 
     // Filter by time period
@@ -160,15 +175,16 @@ const Reports = () => {
     const subjectData = {}
 
     filteredBehaviors.forEach((behavior) => {
-      if (!subjectData[behavior.subject]) {
-        subjectData[behavior.subject] = { subject: behavior.subject, positive: 0, negative: 0, total: 0 }
+      const subjectKey = behavior.subject || "Unknown"
+      if (!subjectData[subjectKey]) {
+        subjectData[subjectKey] = { subject: subjectKey, positive: 0, negative: 0, total: 0 }
       }
 
-      subjectData[behavior.subject].total++
+      subjectData[subjectKey].total++
       if (["positive", "participation", "helpful"].includes(behavior.behaviorType)) {
-        subjectData[behavior.subject].positive++
+        subjectData[subjectKey].positive++
       } else {
-        subjectData[behavior.subject].negative++
+        subjectData[subjectKey].negative++
       }
     })
 
@@ -211,7 +227,7 @@ const Reports = () => {
     const negative = filteredBehaviors.filter((b) =>
       ["disruptive", "aggressive", "late"].includes(b.behaviorType),
     ).length
-    const studentsWithBehaviors = new Set(filteredBehaviors.map((b) => b.student)).size
+    const studentsWithBehaviors = new Set(filteredBehaviors.map((b) => b.studentId)).size
 
     return {
       total,
@@ -230,12 +246,12 @@ const Reports = () => {
       ["Date", "Student", "Behavior Type", "Subject", "Time of Day", "Severity", "Description"],
       ...filteredBehaviors.map((behavior) => [
         new Date(behavior.createdAt).toLocaleDateString(),
-        behavior.student,
+        behavior.studentName || behavior.studentId,
         behavior.behaviorType,
-        behavior.subject,
-        behavior.timeOfDay,
-        behavior.severity,
-        behavior.description,
+        behavior.subject || "",
+        behavior.timeOfDay || "",
+        behavior.severity || "",
+        behavior.notes || behavior.description || "",
       ]),
     ]
 
@@ -255,50 +271,47 @@ const Reports = () => {
   }
 
   const exportToPDF = () => {
-    const doc = new jsPDF()
+    const doc = new jsPDF({ unit: "pt", format: "a4" })
 
     // Header
     doc.setFontSize(20)
-    doc.text("TabiaZetu Behavior Report", 20, 20)
+    doc.text("TabiaZetu Behavior Report", 40, 40)
 
     doc.setFontSize(12)
-    doc.text(`Teacher: ${user?.firstName} ${user?.lastName}`, 20, 35)
-    doc.text(`School: ${user?.school}`, 20, 45)
-    doc.text(`Period: ${selectedPeriod}`, 20, 55)
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 65)
+    doc.text(`Teacher: ${user?.firstName || ""} ${user?.lastName || ""}`, 40, 65)
+    doc.text(`School: ${user?.school || ""}`, 40, 80)
+    doc.text(`Period: ${selectedPeriod}`, 40, 95)
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 40, 110)
 
     // Summary Statistics
     doc.setFontSize(16)
-    doc.text("Summary Statistics", 20, 85)
+    doc.text("Summary Statistics", 40, 140)
 
     doc.setFontSize(12)
-    doc.text(`Total Behaviors: ${summaryStats.total}`, 20, 100)
-    doc.text(`Positive Behaviors: ${summaryStats.positive}`, 20, 110)
-    doc.text(`Negative Behaviors: ${summaryStats.negative}`, 20, 120)
-    doc.text(`Students Tracked: ${summaryStats.studentsWithBehaviors}`, 20, 130)
-    doc.text(`Positive Rate: ${summaryStats.positiveRate}%`, 20, 140)
+    const y0 = 160
+    doc.text(`Total Behaviors: ${summaryStats.total}`, 40, y0)
+    doc.text(`Positive Behaviors: ${summaryStats.positive}`, 40, y0 + 15)
+    doc.text(`Negative Behaviors: ${summaryStats.negative}`, 40, y0 + 30)
+    doc.text(`Students Tracked: ${summaryStats.studentsWithBehaviors}`, 40, y0 + 45)
+    doc.text(`Positive Rate: ${summaryStats.positiveRate}%`, 40, y0 + 60)
 
     // Behavior Details Table
     if (filteredBehaviors.length > 0) {
-      doc.setFontSize(16)
-      doc.text("Behavior Details", 20, 160)
-
-      const tableData = filteredBehaviors
-        .slice(0, 20)
-        .map((behavior) => [
-          new Date(behavior.createdAt).toLocaleDateString(),
-          behavior.student,
-          behavior.behaviorType,
-          behavior.subject,
-          behavior.severity,
-        ])
+      const tableData = filteredBehaviors.slice(0, 200).map((behavior) => [
+        new Date(behavior.createdAt).toLocaleDateString(),
+        behavior.studentName || behavior.studentId,
+        behavior.behaviorType,
+        behavior.subject || "",
+        behavior.severity || "",
+      ])
 
       doc.autoTable({
         head: [["Date", "Student", "Type", "Subject", "Severity"]],
         body: tableData,
-        startY: 170,
-        styles: { fontSize: 8 },
+        startY: y0 + 90,
+        styles: { fontSize: 9, cellPadding: 4 },
         headStyles: { fillColor: [20, 184, 166] },
+        theme: "grid",
       })
     }
 
@@ -382,7 +395,7 @@ const Reports = () => {
                     <SelectContent>
                       <SelectItem value="all">All Students</SelectItem>
                       {students.map((student) => (
-                        <SelectItem key={student.id} value={student.name}>
+                        <SelectItem key={student._id || student.id} value={student._id || student.id}>
                           {student.name}
                         </SelectItem>
                       ))}
@@ -655,7 +668,7 @@ const Reports = () => {
                         >
                           {behavior.behaviorType}
                         </Badge>
-                        <span className="font-medium text-teal-900">{behavior.student}</span>
+                        <span className="font-medium text-teal-900">{behavior.studentName || behavior.studentId}</span>
                         <span className="text-teal-700">in {behavior.subject}</span>
                       </div>
                       <div className="text-sm text-teal-600">{new Date(behavior.createdAt).toLocaleDateString()}</div>

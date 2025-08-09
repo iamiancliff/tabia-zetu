@@ -65,8 +65,9 @@ export default function Signup() {
     if (!success) {
       return setError(signupError);
     }
-    setError(""); // Clear any previous error on success
-    navigate("/dashboard"); // or wherever the user should land
+    setError("");
+    // Redirect to login after successful signup
+    navigate("/login");
   };
 
   return (

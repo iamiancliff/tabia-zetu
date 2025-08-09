@@ -75,6 +75,8 @@ const Students = () => {
     "Form 4",
   ]
 
+  const getId = (s) => (s && (s._id || s.id))
+
   // Get Kenya time
   const getKenyaTime = () => {
     return new Date().toLocaleString("en-US", {
@@ -111,8 +113,12 @@ const Students = () => {
         if (studentsResponse.ok && behaviorsResponse.ok) {
           const studentsData = await studentsResponse.json()
           const behaviorsData = await behaviorsResponse.json()
-          setStudents(studentsData.students || [])
-          setBehaviors(behaviorsData.behaviors || [])
+          const normalizedStudents = (Array.isArray(studentsData) ? studentsData : []).map((s) => ({
+            ...s,
+            class: s.class || s.stream || "",
+          }))
+          setStudents(normalizedStudents)
+          setBehaviors(Array.isArray(behaviorsData) ? behaviorsData : [])
         } else {
           throw new Error("Backend not available")
         }
@@ -165,11 +171,12 @@ const Students = () => {
     }
 
     const studentData = {
-      id: Date.now().toString(),
-      ...newStudent,
+      name: newStudent.name,
+      stream: newStudent.class, // map UI "class" to backend "stream"
       age: Number.parseInt(newStudent.age),
-      createdAt: getKenyaTime(),
-      teacher: user?.id,
+      subjects: Array.isArray(newStudent.subjects) ? newStudent.subjects : [],
+      parentContact: newStudent.parentContact || undefined,
+      notes: newStudent.specialNotes || undefined,
     }
 
     try {
@@ -186,7 +193,8 @@ const Students = () => {
 
       if (response.ok) {
         const savedStudent = await response.json()
-        setStudents((prev) => [...prev, savedStudent.student])
+        const normalized = { ...savedStudent, class: savedStudent.class || savedStudent.stream || "" }
+        setStudents((prev) => [...prev, normalized])
       } else {
         throw new Error("Backend save failed")
       }
@@ -213,16 +221,18 @@ const Students = () => {
 
   const handleEditStudent = async (updatedData) => {
     const updatedStudent = {
-      ...editingStudent,
-      ...updatedData,
+      name: updatedData.name,
+      stream: updatedData.class || editingStudent.class || "",
       age: Number.parseInt(updatedData.age),
-      updatedAt: getKenyaTime(),
+      subjects: Array.isArray(updatedData.subjects) ? updatedData.subjects : [],
+      parentContact: updatedData.parentContact || undefined,
+      notes: updatedData.specialNotes || undefined,
     }
 
     try {
       // Try to update in backend
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-      const response = await fetch(`${apiUrl}/students/${editingStudent.id}`, {
+      const response = await fetch(`${apiUrl}/students/${getId(editingStudent)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -233,14 +243,15 @@ const Students = () => {
 
       if (response.ok) {
         const savedStudent = await response.json()
-        setStudents((prev) => prev.map((s) => (s.id === editingStudent.id ? savedStudent.student : s)))
+        const normalized = { ...savedStudent, class: savedStudent.class || savedStudent.stream || "" }
+        setStudents((prev) => prev.map((s) => (getId(s) === getId(savedStudent) ? normalized : s)))
       } else {
         throw new Error("Backend update failed")
       }
     } catch (error) {
       console.log("Updating in localStorage")
       // Update in localStorage as fallback
-      const updatedStudents = students.map((s) => (s.id === editingStudent.id ? updatedStudent : s))
+      const updatedStudents = students.map((s) => (getId(s) === getId(editingStudent) ? updatedStudent : s))
       setStudents(updatedStudents)
       localStorage.setItem("students", JSON.stringify(updatedStudents))
     }
@@ -263,16 +274,16 @@ const Students = () => {
       })
 
       if (response.ok) {
-        setStudents((prev) => prev.filter((s) => s.id !== studentId))
-        setBehaviors((prev) => prev.filter((b) => b.studentId !== studentId))
+        setStudents((prev) => prev.filter((s) => getId(s) !== studentId))
+        setBehaviors((prev) => prev.filter((b) => (b.student?._id || b.student) !== studentId))
       } else {
         throw new Error("Backend delete failed")
       }
     } catch (error) {
       console.log("Deleting from localStorage")
       // Delete from localStorage as fallback
-      const updatedStudents = students.filter((s) => s.id !== studentId)
-      const updatedBehaviors = behaviors.filter((b) => b.studentId !== studentId)
+      const updatedStudents = students.filter((s) => getId(s) !== studentId)
+      const updatedBehaviors = behaviors.filter((b) => (b.student?._id || b.student) !== studentId)
       setStudents(updatedStudents)
       setBehaviors(updatedBehaviors)
       localStorage.setItem("students", JSON.stringify(updatedStudents))
@@ -423,7 +434,7 @@ const Students = () => {
   const filteredStudents = students.filter(
     (student) =>
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.class.toLowerCase().includes(searchTerm.toLowerCase()),
+      (student.class || "").toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
   const handleExportStudents = () => {
@@ -707,7 +718,7 @@ const Students = () => {
                       filteredStudents.map((student) => {
                         const stats = getStudentStats(student)
                         return (
-                          <TableRow key={student.id} className="hover:bg-teal-50/50">
+                          <TableRow key={getId(student)} className="hover:bg-teal-50/50">
                             <TableCell>
                               <div className="flex items-center space-x-3">
                                 <Avatar className="w-10 h-10 border-2 border-teal-200">
@@ -766,7 +777,7 @@ const Students = () => {
                                   onClick={() => {
                                     setShowSuggestions((prev) => ({
                                       ...prev,
-                                      [student.id]: !prev[student.id],
+                                      [getId(student)]: !prev[getId(student)],
                                     }))
                                   }}
                                   className="border-purple-300 text-purple-700 hover:bg-purple-50"
@@ -787,7 +798,7 @@ const Students = () => {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleDeleteStudent(student.id)}
+                                  onClick={() => handleDeleteStudent(getId(student))}
                                   className="border-red-300 text-red-700 hover:bg-red-50"
                                 >
                                   <Trash2 className="w-3 h-3" />
@@ -810,12 +821,12 @@ const Students = () => {
                     Behavior Improvement Suggestions
                   </h3>
                   {filteredStudents.map((student) => {
-                    if (!showSuggestions[student.id]) return null
+                    if (!showSuggestions[getId(student)]) return null
 
                     const suggestions = generateSuggestions(student)
 
                     return (
-                      <Card key={student.id} className="bg-purple-50 border-purple-200">
+                      <Card key={getId(student)} className="bg-purple-50 border-purple-200">
                         <CardHeader className="pb-3">
                           <CardTitle className="text-lg text-purple-900">Suggestions for {student.name}</CardTitle>
                         </CardHeader>

@@ -76,8 +76,13 @@ const Dashboard = () => {
         if (behaviorsResponse.ok && studentsResponse.ok) {
           const behaviorsData = await behaviorsResponse.json()
           const studentsData = await studentsResponse.json()
-          setBehaviors(behaviorsData.behaviors || [])
-          setStudents(studentsData.students || [])
+          const studentMap = new Map((Array.isArray(studentsData) ? studentsData : []).map((s) => [s._id || s.id, s.name]))
+          const normalizedBehaviors = (Array.isArray(behaviorsData) ? behaviorsData : []).map((b) => ({
+            ...b,
+            studentDisplayName: (b.student && b.student.name) ? b.student.name : studentMap.get(b.student) || b.student,
+          }))
+          setBehaviors(normalizedBehaviors)
+          setStudents(Array.isArray(studentsData) ? studentsData : [])
         } else {
           throw new Error("Backend not available")
         }
@@ -96,12 +101,16 @@ const Dashboard = () => {
   }
 
   const handleAddBehavior = async (behaviorData) => {
-    const newBehavior = {
-      id: Date.now().toString(),
-      ...behaviorData,
-      teacher: user?.id,
-      createdAt: getKenyaTime(),
-      updatedAt: getKenyaTime(),
+    // Map form data to backend payload
+    const payload = {
+      studentId: behaviorData.student, // should be student _id
+      behaviorType: behaviorData.behaviorType,
+      subject: behaviorData.subject,
+      timeOfDay: behaviorData.timeOfDay,
+      severity: behaviorData.severity,
+      notes: behaviorData.description,
+      outcome: behaviorData.outcome,
+      date: new Date().toISOString(),
     }
 
     try {
@@ -113,12 +122,12 @@ const Dashboard = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify(newBehavior),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        const savedBehavior = await response.json()
-        setBehaviors((prev) => [savedBehavior.behavior, ...prev])
+        // Refresh lists to pull populated behavior entries
+        await loadData()
       } else {
         throw new Error("Backend save failed")
       }
@@ -317,7 +326,7 @@ const Dashboard = () => {
                     >
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-teal-900">{behavior.student}</span>
+                          <span className="font-medium text-teal-900">{behavior.studentDisplayName}</span>
                           <Badge
                             className={
                               ["positive", "participation", "helpful"].includes(behavior.behaviorType)
