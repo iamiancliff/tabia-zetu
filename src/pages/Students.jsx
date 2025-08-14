@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import DashboardSidebar from "../components/DashboardSidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -483,10 +481,10 @@ const Students = () => {
   if (isLoading) {
     return (
       <DashboardSidebar>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-teal-700">Loading students...</p>
+            <p className="text-teal-700 dark:text-teal-300">Loading students...</p>
           </div>
         </div>
       </DashboardSidebar>
@@ -495,10 +493,10 @@ const Students = () => {
 
   return (
     <DashboardSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
         <div className="container mx-auto px-4 py-8 space-y-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-r from-teal-600 to-teal-700 dark:from-teal-700 dark:to-teal-800 rounded-2xl p-6 text-white shadow-lg transition-colors duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -506,33 +504,33 @@ const Students = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Student Management</h1>
-                  <p className="text-teal-100 text-lg">Manage your students and track their classroom behavior</p>
+                  <p className="text-teal-100 dark:text-teal-200 text-lg">Manage your students and track their classroom behavior</p>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-4xl font-bold">{students.length}</div>
-                <div className="text-teal-200">Total Students</div>
+                <div className="text-teal-200 dark:text-teal-300">Total Students</div>
               </div>
             </div>
           </div>
 
           {message && (
-            <Alert className="border-green-500 bg-green-50">
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-900/20 dark:border-green-600 transition-colors duration-200">
               <CheckCircle className="h-4 w-4" />
-              <AlertDescription className="text-green-700">{message}</AlertDescription>
+              <AlertDescription className="text-green-700 dark:text-green-300">{message}</AlertDescription>
             </Alert>
           )}
 
           {/* Main Content */}
-          <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+          <Card className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-teal-200 dark:border-gray-600 shadow-lg transition-colors duration-200">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-teal-900">
+                  <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
                     <Users className="w-5 h-5" />
                     Students ({filteredStudents.length})
                   </CardTitle>
-                  <CardDescription className="text-teal-700">
+                  <CardDescription className="text-teal-700 dark:text-teal-300">
                     Register and manage students in your classroom
                   </CardDescription>
                 </div>
@@ -540,7 +538,7 @@ const Students = () => {
                   <Button
                     onClick={handleExportStudents}
                     variant="outline"
-                    className="border-teal-300 text-teal-700 hover:bg-teal-50 bg-transparent"
+                    className="border-teal-300 dark:border-teal-600 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20 bg-transparent"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Export CSV
@@ -552,10 +550,10 @@ const Students = () => {
                         Add Student
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-white max-w-2xl">
+                    <DialogContent className="bg-white dark:bg-gray-800 max-w-2xl transition-colors duration-200">
                       <DialogHeader>
-                        <DialogTitle className="text-teal-900">Register New Student</DialogTitle>
-                        <DialogDescription className="text-teal-700">
+                        <DialogTitle className="text-teal-900 dark:text-teal-100">Register New Student</DialogTitle>
+                        <DialogDescription className="text-teal-700 dark:text-teal-300">
                           Add a new student to your classroom with complete information
                         </DialogDescription>
                       </DialogHeader>
@@ -1002,8 +1000,17 @@ const Students = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-center py-8 border-t border-teal-200 bg-teal-50/50">
-          <p className="text-teal-600 text-sm">© 2025 TabiaZetu. All rights reserved.</p>
+        <div className="mt-16 pt-8 border-t border-teal-200">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+                <Users className="w-5 h-5 text-teal-600" />
+              </div>
+              <span className="text-lg font-semibold text-teal-800">TabiaZetu</span>
+            </div>
+            <p className="text-sm text-teal-600 mb-2">Track. Understand. Improve.</p>
+            <p className="text-xs text-teal-500">© 2025 TabiaZetu. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </DashboardSidebar>

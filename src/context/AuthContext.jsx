@@ -1,6 +1,4 @@
-"use client"
-
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react"
 
 const AuthContext = createContext()
 
@@ -14,14 +12,40 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true) // Start with loading true
   const [token, setToken] = useState(null)
 
-  const login = async (email, password) => {
-    console.log("🔵 [FRONTEND LOGIN] Starting login process...")
-    console.log("🔵 [FRONTEND LOGIN] Email:", email)
-    console.log("🔵 [FRONTEND LOGIN] Password length:", password?.length || 0)
+  // Memoize user object to prevent unnecessary re-renders
+  const memoizedUser = useMemo(() => {
+    if (!user) return null
     
+    // Create a stable reference for user object
+    return {
+      ...user,
+      // Ensure streams is always an array
+      streams: Array.isArray(user.streams) ? user.streams : [],
+      // Ensure dates are properly formatted
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }
+  }, [user?.id, user?.email, user?.firstName, user?.lastName, user?.school, user?.county, user?.bio, user?.streams, user?.profileImage])
+
+  // Restore session on mount
+  useEffect(() => {
+    const initializeSession = async () => {
+      const restored = restoreSession()
+      if (restored) {
+        // Refresh user data from server to ensure we have the latest profile data
+        await refreshUserData()
+      } else {
+        setLoading(false)
+      }
+    }
+    
+    initializeSession()
+  }, []) // Keep empty dependencies to avoid circular issues
+
+  const login = async (email, password) => {
     try {
       setLoading(true)
 
@@ -45,23 +69,25 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("user", JSON.stringify(data))
       setToken(data.token)
       setUser(data)
+      
+      // Ensure we have the complete user profile data
+      if (data.profileImage || data.bio || data.streams) {
+        // Dispatch event to update sidebar and other components
+        window.dispatchEvent(new CustomEvent("profileUpdated", { detail: data }))
+      }
+      
       return { success: true, user: data }
     } catch (error) {
       return { success: false, error: "Unable to reach the server" }
     } finally {
       setLoading(false)
-      console.log("🔵 [FRONTEND LOGIN] Loading state set to false")
     }
   }
 
   const signup = async (userData) => {
-    console.log("🔵 [FRONTEND SIGNUP] Starting signup process...")
-    console.log("🔵 [FRONTEND SIGNUP] User data:", { ...userData, password: "***" })
-    
     try {
       setLoading(true)
       if (!userData.firstName || !userData.lastName || !userData.email || !userData.password || !userData.school) {
-        console.log("❌ [FRONTEND SIGNUP] Validation failed - missing required fields")
         throw new Error("Please fill in all required fields")
       }
 
@@ -85,7 +111,6 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: error.message || "Signup failed. Please try again." }
     } finally {
       setLoading(false)
-      console.log("🔵 [FRONTEND SIGNUP] Loading state set to false")
     }
   }
 
@@ -101,10 +126,13 @@ export const AuthProvider = ({ children }) => {
         const userData = JSON.parse(storedUser)
         setToken(storedToken)
         setUser(userData)
+        setLoading(false) // Ensure loading is set to false
         return true
-      } catch {
+      } catch (error) {
+        console.error("❌ [AUTH CONTEXT] Error parsing stored user data:", error)
         localStorage.removeItem("token")
         localStorage.removeItem("user")
+        setLoading(false)
         return false
       }
     }
@@ -112,8 +140,44 @@ export const AuthProvider = ({ children }) => {
     // Clean up any mock/invalid tokens
     localStorage.removeItem("token")
     localStorage.removeItem("user")
+    setLoading(false)
     return false
   }
+
+  const refreshUserData = useCallback(async () => {
+    const storedToken = localStorage.getItem("token")
+    if (!storedToken) {
+      return false
+    }
+
+    try {
+      setLoading(true)
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${apiUrl}/auth/me`, {
+        headers: { Authorization: `Bearer ${storedToken}` },
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        localStorage.setItem("user", JSON.stringify(userData))
+        setLoading(false)
+        return true
+      } else {
+        // Token might be expired, clear it
+        localStorage.removeItem("token")
+        localStorage.removeItem("user")
+        setUser(null)
+        setToken(null)
+        setLoading(false)
+        return false
+      }
+    } catch (error) {
+      console.error("❌ [AUTH CONTEXT] Error refreshing user data:", error)
+      setLoading(false)
+      return false
+    }
+  }, [])
 
   const logout = () => {
     localStorage.removeItem("token")
@@ -122,21 +186,39 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
-  const updateUser = (updatedUserData) => {
+  const updateUser = useCallback((updatedUserData) => {
     const updatedUser = { ...user, ...updatedUserData }
     setUser(updatedUser)
     localStorage.setItem("user", JSON.stringify(updatedUser))
-  }
+    
+    // Dispatch event to update sidebar and other components
+    window.dispatchEvent(new CustomEvent("profileUpdated", { detail: updatedUser }))
+    
+    return { success: true, user: updatedUser }
+  }, [user])
+
+  const updateProfileImage = useCallback((imageData) => {
+    const updatedUser = { ...user, profileImage: imageData }
+    setUser(updatedUser)
+    localStorage.setItem("user", JSON.stringify(updatedUser))
+    
+    // Dispatch event to update sidebar and other components
+    window.dispatchEvent(new CustomEvent("profileUpdated", { detail: updatedUser }))
+    
+    return { success: true, user: updatedUser }
+  }, [user])
 
   const value = {
-    user,
+    user: memoizedUser,
     login,
     signup,
     logout,
     loading,
     restoreSession,
     updateUser,
-    isAuthenticated: !!user,
+    updateProfileImage,
+    isAuthenticated: !!memoizedUser,
+    refreshUserData,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

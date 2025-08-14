@@ -1,6 +1,8 @@
-"use client"
 import { Routes, Route, Navigate } from "react-router-dom"
 import { useAuth } from "./context/AuthContext" // Keep useAuth import
+import { lazy, Suspense } from "react"
+import React from "react" // Added for ErrorBoundary
+import { AlertTriangle } from "lucide-react" // Added for ErrorBoundary
 
 import LandingPage from "./pages/LandingPage"
 import Dashboard from "./pages/Dashboard"
@@ -8,11 +10,66 @@ import Students from "./pages/Students"
 import BehaviorLog from "./pages/BehaviorLog"
 import Reports from "./pages/Reports"
 import Teachers from "./pages/Teachers"
-import Settings from "./pages/Settings"
 import AdminSettings from "./pages/AdminSettings"
 import AdminDashboard from "./pages/AdminDashboard"
 import Login from "./pages/Login"
 import Signup from "./pages/Signup"
+import Help from "./pages/Help"
+
+// Lazy load Settings component to improve performance
+const Settings = lazy(() => import("./pages/Settings"))
+
+// Loading component for lazy-loaded components
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-teal-700">Loading...</p>
+    </div>
+  </div>
+)
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Error caught by boundary:", error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+          <div className="text-center max-w-md mx-auto p-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-bold text-red-800 mb-2">Something went wrong</h2>
+            <p className="text-red-600 mb-4">
+              We encountered an error while loading this page. Please try refreshing or contact support if the problem persists.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -51,48 +108,7 @@ const AdminRoute = ({ children }) => {
   return isAdmin ? children : <Navigate to="/dashboard" replace />
 }
 
-// Help Page Component
-const HelpPage = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white/80 backdrop-blur-sm border border-teal-200 rounded-2xl p-8 shadow-lg">
-          <h1 className="text-3xl font-bold text-teal-900 mb-6">Help & Support</h1>
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-teal-800 mb-3">Getting Started</h2>
-              <p className="text-teal-700">
-                Welcome to TabiaZetu! This platform helps you track and understand student behavior patterns. Start by
-                adding your students and logging their behaviors during class.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-teal-800 mb-3">Logging Behaviors</h2>
-              <p className="text-teal-700">
-                Use the Behavior Log section to record positive behaviors, concerns, and observations. The more detailed
-                your logs, the better insights you'll receive.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-teal-800 mb-3">Understanding Reports</h2>
-              <p className="text-teal-700">
-                The Reports section provides visual analytics of behavior patterns over time. Use these insights to
-                identify trends and adjust your teaching strategies.
-              </p>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-teal-800 mb-3">Contact Support</h2>
-              <p className="text-teal-700">
-                Need help? Contact us at support@tabiazetu.co.ke or call +254 700 000 000. We're here to help you
-                succeed!
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+
 
 function App() {
   return (
@@ -144,7 +160,11 @@ function App() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <Settings />
+            <Suspense fallback={<LoadingSpinner />}>
+              <ErrorBoundary>
+                <Settings />
+              </ErrorBoundary>
+            </Suspense>
           </ProtectedRoute>
         }
       />
@@ -160,7 +180,7 @@ function App() {
         path="/help"
         element={
           <ProtectedRoute>
-            <HelpPage />
+            <Help />
           </ProtectedRoute>
         }
       />

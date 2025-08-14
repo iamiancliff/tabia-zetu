@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import DashboardSidebar from "../components/DashboardSidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,11 +26,29 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Switch } from "@/components/ui/switch"
 
 const AdminSettings = () => {
-  const { user, updateProfile } = useAuth()
+  const { user, updateUser } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState("")
   const [profileImage, setProfileImage] = useState(null)
   const [imagePreview, setImagePreview] = useState("")
+
+  // Update adminProfile when user data changes
+  useEffect(() => {
+    if (user) {
+      setAdminProfile({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        organization: user.organization || "TabiaZetu Administration",
+        position: user.position || "System Administrator",
+        bio: user.bio || "",
+        streams: user.streams || [],
+        location: user.location || "Nairobi, Kenya",
+      })
+      setImagePreview(user.profileImage || "")
+    }
+  }, [user])
 
   const [adminProfile, setAdminProfile] = useState({
     firstName: "",
@@ -42,6 +58,7 @@ const AdminSettings = () => {
     organization: "",
     position: "System Administrator",
     bio: "",
+    streams: [],
     location: "",
   })
 
@@ -54,28 +71,18 @@ const AdminSettings = () => {
     backupFrequency: "daily",
   })
 
-  useEffect(() => {
-    if (user) {
-      setAdminProfile({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.email || "",
-        phone: user.phone || "",
-        organization: user.organization || "TabiaZetu Administration",
-        position: user.position || "System Administrator",
-        bio: user.bio || "",
-        location: user.location || "Nairobi, Kenya",
-      })
-      setImagePreview(user.profileImage || "")
-    }
-  }, [user])
-
   const handleImageUpload = (e) => {
     const file = e.target.files[0]
     if (file) {
       setProfileImage(file)
       const reader = new FileReader()
-      reader.onload = (e) => setImagePreview(e.target.result)
+      reader.onload = (e) => {
+        const imageData = e.target.result
+        setImagePreview(imageData)
+        
+        // Update user context immediately for better persistence
+        updateUser({ profileImage: imageData })
+      }
       reader.readAsDataURL(file)
     }
   }
@@ -94,7 +101,7 @@ const AdminSettings = () => {
         }),
       }
 
-      const result = await updateProfile(updatedData)
+      const result = await updateUser(updatedData)
       if (result.success) {
         setMessage("Admin profile updated successfully!")
         setTimeout(() => setMessage(""), 3000)
@@ -126,17 +133,17 @@ const AdminSettings = () => {
 
   return (
     <DashboardSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 dark:from-teal-900 dark:via-teal-800 dark:to-teal-900 transition-colors duration-200">
         <div className="container mx-auto px-4 py-8 space-y-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-r from-teal-600 to-teal-700 dark:from-teal-700 dark:to-teal-800 rounded-2xl p-6 text-white shadow-lg transition-colors duration-200">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-white/20 dark:bg-teal-700/50 rounded-2xl flex items-center justify-center transition-colors duration-200">
                 <Shield className="w-8 h-8 text-white" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold">Administrator Settings</h1>
-                <p className="text-teal-100 text-lg">Manage your profile and system configuration</p>
+                <p className="text-teal-100 dark:text-teal-200 text-lg">Manage your profile and system configuration</p>
               </div>
             </div>
           </div>
@@ -154,13 +161,13 @@ const AdminSettings = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Admin Profile */}
             <div className="lg:col-span-2">
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-teal-900">
+                  <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
                     <User className="w-5 h-5" />
                     Administrator Profile
                   </CardTitle>
-                  <CardDescription className="text-teal-700">
+                  <CardDescription className="text-teal-700 dark:text-teal-300">
                     Update your personal information and preferences
                   </CardDescription>
                 </CardHeader>
@@ -169,8 +176,16 @@ const AdminSettings = () => {
                     {/* Profile Image */}
                     <div className="flex items-center space-x-6">
                       <Avatar className="w-24 h-24 border-4 border-teal-200">
-                        <AvatarImage src={imagePreview || "/placeholder.svg"} alt="Profile" />
-                        <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl">
+                        <AvatarImage 
+                          src={imagePreview && imagePreview !== "" && imagePreview !== "undefined" && imagePreview !== "null" ? imagePreview : undefined} 
+                          alt="Profile" 
+                          className="object-cover"
+                          onError={(e) => {
+                            console.log("Admin settings profile image failed to load, using fallback")
+                            e.target.style.display = 'none'
+                          }}
+                        />
+                        <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl font-semibold">
                           {adminProfile.firstName?.[0]}
                           {adminProfile.lastName?.[0]}
                         </AvatarFallback>
@@ -305,6 +320,38 @@ const AdminSettings = () => {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="streams" className="text-teal-800">
+                        Classes/Streams You Manage
+                      </Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8"].map((stream) => (
+                          <label key={stream} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={adminProfile.streams.includes(stream)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setAdminProfile({
+                                    ...adminProfile,
+                                    streams: [...adminProfile.streams, stream]
+                                  })
+                                } else {
+                                  setAdminProfile({
+                                    ...adminProfile,
+                                    streams: adminProfile.streams.filter(s => s !== stream)
+                                  })
+                                }
+                              }}
+                              className="rounded border-teal-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="text-sm text-teal-700">{stream}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-sm text-teal-600">Select all the classes you currently manage</p>
+                    </div>
+
                     <Button
                       type="submit"
                       disabled={isLoading}
@@ -326,13 +373,13 @@ const AdminSettings = () => {
 
             {/* System Settings */}
             <div className="space-y-6">
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-teal-900">
+                  <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
                     <Settings className="w-5 h-5" />
                     System Settings
                   </CardTitle>
-                  <CardDescription className="text-teal-700">Configure system-wide preferences</CardDescription>
+                  <CardDescription className="text-teal-700 dark:text-teal-300">Configure system-wide preferences</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -414,9 +461,9 @@ const AdminSettings = () => {
               </Card>
 
               {/* Quick Stats */}
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-teal-900">
+                  <CardTitle className="flex items-center gap-2 text-teal-900 dark:text-teal-100">
                     <Database className="w-5 h-5" />
                     System Overview
                   </CardTitle>

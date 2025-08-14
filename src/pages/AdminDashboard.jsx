@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import DashboardSidebar from "../components/DashboardSidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Shield, Users, School, BarChart3, Trash2, AlertTriangle, CheckCircle, UserCheck, Building } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
+import { Badge } from "@/components/ui/badge"
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -72,6 +71,7 @@ const AdminDashboard = () => {
       email: "mary.wanjiku@demo.school.ke",
       school: "Demo Primary School",
       county: "Nairobi",
+      streams: ["Class 1", "Class 2", "Class 3"],
       createdAt: "2024-01-15T10:30:00Z",
     },
     {
@@ -81,6 +81,7 @@ const AdminDashboard = () => {
       email: "james.ochieng@kisumu.school.ke",
       school: "Kisumu Secondary School",
       county: "Kisumu",
+      streams: ["Class 4", "Class 5"],
       createdAt: "2024-02-20T14:15:00Z",
     },
     {
@@ -90,6 +91,7 @@ const AdminDashboard = () => {
       email: "sarah.kimani@nakuru.school.ke",
       school: "Nakuru Girls High School",
       county: "Nakuru",
+      streams: ["Class 6", "Class 7", "Class 8"],
       createdAt: "2024-03-10T09:45:00Z",
     },
   ]
@@ -229,7 +231,7 @@ const AdminDashboard = () => {
   if (isLoading) {
     return (
       <DashboardSidebar>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100 transition-colors duration-200">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-teal-700">Loading admin dashboard...</p>
@@ -241,13 +243,13 @@ const AdminDashboard = () => {
 
   return (
     <DashboardSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 transition-colors duration-200">
         <div className="container mx-auto px-4 py-8 space-y-6">
           {/* Header */}
-          <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg transition-colors duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center transition-colors duration-200">
                   <Shield className="w-8 h-8 text-white" />
                 </div>
                 <div>
@@ -265,7 +267,7 @@ const AdminDashboard = () => {
           </div>
 
           {message && (
-            <Alert className="border-green-500 bg-green-50">
+            <Alert className="border-green-500 bg-green-50 transition-colors duration-200">
               <CheckCircle className="h-4 w-4" />
               <AlertDescription className="text-green-700">{message}</AlertDescription>
             </Alert>
@@ -273,14 +275,14 @@ const AdminDashboard = () => {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+            <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100">Total Teachers</p>
+                    <p className="text-teal-100">Total Teachers</p>
                     <p className="text-3xl font-bold">{stats.totalTeachers}</p>
                   </div>
-                  <UserCheck className="w-8 h-8 text-blue-200" />
+                  <UserCheck className="w-8 h-8 text-teal-200" />
                 </div>
               </CardContent>
             </Card>
@@ -323,7 +325,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Schools and Teachers */}
-          <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+                      <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg transition-colors duration-200">
             <CardHeader>
               <CardTitle className="text-teal-900 flex items-center gap-2">
                 <School className="w-5 h-5" />
@@ -369,21 +371,30 @@ const AdminDashboard = () => {
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-white/50">
+                            <TableRow className="bg-white/50 transition-colors duration-200">
                               <TableHead className="text-teal-800">Teacher</TableHead>
                               <TableHead className="text-teal-800">Email</TableHead>
+                              <TableHead className="text-teal-800">Streams</TableHead>
                               <TableHead className="text-teal-800">Joined</TableHead>
                               <TableHead className="text-teal-800">Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {school.teachers.map((teacher) => (
-                              <TableRow key={teacher.id} className="hover:bg-white/50">
+                              <TableRow key={teacher.id} className="hover:bg-white/50 transition-colors duration-200">
                                 <TableCell>
                                   <div className="flex items-center space-x-3">
                                     <Avatar className="w-8 h-8 border border-teal-200">
-                                      <AvatarImage src={teacher.profileImage || "/placeholder.svg"} alt="Profile" />
-                                      <AvatarFallback className="bg-teal-100 text-teal-700 text-xs">
+                                      <AvatarImage 
+                                        src={teacher.profileImage && teacher.profileImage !== "" && teacher.profileImage !== "undefined" && teacher.profileImage !== "null" ? teacher.profileImage : undefined} 
+                                        alt="Profile" 
+                                        className="object-cover"
+                                        onError={(e) => {
+                                          console.log("Admin dashboard profile image failed to load, using fallback")
+                                          e.target.style.display = 'none'
+                                        }}
+                                      />
+                                      <AvatarFallback className="bg-teal-100 text-teal-700 text-xs font-semibold">
                                         {teacher.firstName?.[0]}
                                         {teacher.lastName?.[0]}
                                       </AvatarFallback>
@@ -397,6 +408,19 @@ const AdminDashboard = () => {
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-teal-700">{teacher.email}</TableCell>
+                                <TableCell className="text-teal-700">
+                                  {teacher.streams && teacher.streams.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {teacher.streams.map((stream) => (
+                                        <Badge key={stream} variant="secondary" className="text-xs bg-teal-100 text-teal-800">
+                                          {stream}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-teal-500 text-sm">Not specified</span>
+                                  )}
+                                </TableCell>
                                 <TableCell className="text-teal-700">
                                   {new Date(teacher.createdAt).toLocaleDateString()}
                                 </TableCell>
@@ -424,14 +448,14 @@ const AdminDashboard = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-center py-8 border-t border-teal-200 bg-teal-50/50">
-          <p className="text-teal-600 text-sm">© 2025 TabiaZetu. All rights reserved.</p>
-        </div>
+                  <div className="mt-16 text-center py-8 border-t border-teal-200 bg-teal-50/50 transition-colors duration-200">
+            <p className="text-teal-600 text-sm">© 2025 TabiaZetu. All rights reserved.</p>
+          </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white transition-colors duration-200">
           <DialogHeader>
             <DialogTitle className="text-red-900 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />

@@ -69,6 +69,30 @@ export function truncateText(text, maxLength = 100) {
 // Behavior-specific utilities
 export function getBehaviorColor(behaviorType) {
   const colors = {
+    // Positive behaviors - green shades
+    excellent_work: "bg-green-100 text-green-800",
+    class_participation: "bg-green-100 text-green-800",
+    helping_others: "bg-green-100 text-green-800",
+    leadership: "bg-green-100 text-green-800",
+    creativity: "bg-green-100 text-green-800",
+    respectful: "bg-green-100 text-green-800",
+    organized: "bg-green-100 text-green-800",
+    teamwork: "bg-green-100 text-green-800",
+    
+    // Neutral behaviors - blue shades
+    late_to_class: "bg-blue-100 text-blue-800",
+    absent: "bg-blue-100 text-blue-800",
+    incomplete_work: "bg-blue-100 text-blue-800",
+    
+    // Negative behaviors - red/orange shades
+    talking_in_class: "bg-yellow-100 text-yellow-800",
+    not_listening: "bg-yellow-100 text-yellow-800",
+    disrupting_class: "bg-orange-100 text-orange-800",
+    using_phone: "bg-orange-100 text-orange-800",
+    fighting: "bg-red-100 text-red-800",
+    bullying: "bg-red-100 text-red-800",
+    
+    // Legacy support
     positive: "bg-green-100 text-green-800",
     participation: "bg-blue-100 text-blue-800",
     helpful: "bg-purple-100 text-purple-800",
@@ -81,8 +105,17 @@ export function getBehaviorColor(behaviorType) {
 
 export function calculatePositiveRate(behaviors) {
   if (!behaviors.length) return 0
-  const positive = behaviors.filter((b) => ["positive", "participation", "helpful"].includes(b.behaviorType)).length
-  return Math.round((positive / behaviors.length) * 100)
+  
+  const positiveBehaviors = behaviors.filter(b => {
+    const type = b.behaviorType || b.type
+    return [
+      'excellent_work', 'class_participation', 'helping_others', 
+      'leadership', 'creativity', 'respectful', 'organized', 'teamwork',
+      'positive', 'participation', 'helpful' // legacy support
+    ].includes(type)
+  })
+  
+  return Math.round((positiveBehaviors.length / behaviors.length) * 100)
 }
 
 export function groupBehaviorsByWeek(behaviors) {

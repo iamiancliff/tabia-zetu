@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -23,6 +25,10 @@ export default function Signup() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleInputChange = (e) => {
     setFormData((prev) => ({
@@ -39,10 +45,10 @@ export default function Signup() {
       const response = await fetch(`${apiUrl}/health`);
       const data = await response.json();
       console.log("✅ Backend connection successful:", data);
-      alert("✅ Backend connection successful!");
+      toast.success("✅ Backend connection successful!");
     } catch (error) {
       console.error("❌ Backend connection failed:", error);
-      alert("❌ Backend connection failed: " + error.message);
+      toast.error("❌ Backend connection failed: " + error.message);
     }
   };
 
@@ -51,11 +57,13 @@ export default function Signup() {
     setError("");
 
     if (formData.password !== formData.confirmPassword) {
-      return setError("Passwords do not match");
+      toast.error("Passwords do not match");
+      return;
     }
 
     if (formData.password.length < 6) {
-      return setError("Password must be at least 6 characters long");
+      toast.error("Password must be at least 6 characters long");
+      return;
     }
 
     setLoading(true);
@@ -63,8 +71,11 @@ export default function Signup() {
     setLoading(false);
 
     if (!success) {
-      return setError(signupError);
+      toast.error(signupError || "Signup failed. Please try again.");
+      return setError(signupError || "Signup failed. Please try again.");
     }
+    
+    toast.success("Account created successfully! Welcome to TabiaZetu!");
     setError("");
     // Redirect to login after successful signup
     navigate("/login");
@@ -120,26 +131,46 @@ export default function Signup() {
 
         <div>
           <Label htmlFor="password">Password *</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            value={formData.password}
-            onChange={handleInputChange}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              value={formData.password}
+              onChange={handleInputChange}
+              className="pr-10"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              {showPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+            </button>
+          </div>
         </div>
 
         <div>
           <Label htmlFor="confirmPassword">Confirm Password *</Label>
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
+              className="pr-10"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            >
+              {showConfirmPassword ? <EyeOff className="w-5 h-5 text-gray-400" /> : <Eye className="w-5 h-5 text-gray-400" />}
+            </button>
+          </div>
         </div>
 
         <div>

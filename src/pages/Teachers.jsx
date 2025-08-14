@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import DashboardSidebar from "../components/DashboardSidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -113,10 +111,10 @@ const Teachers = () => {
   if (isLoading) {
     return (
       <DashboardSidebar>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-400">Loading teachers...</p>
+            <p className="text-teal-700 dark:text-teal-300">Loading teachers...</p>
           </div>
         </div>
       </DashboardSidebar>
@@ -125,7 +123,8 @@ const Teachers = () => {
 
   return (
     <DashboardSidebar>
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
+        <div className="container mx-auto px-4 py-8">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -301,6 +300,7 @@ const Teachers = () => {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </DashboardSidebar>
   )

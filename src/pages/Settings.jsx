@@ -1,6 +1,4 @@
-"use client"
-
-import { useState } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import DashboardSidebar from "../components/DashboardSidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,11 +10,11 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { SettingsIcon, User, Camera, Save, CheckCircle, AlertTriangle, Trash2 } from "lucide-react"
+import { Settings as SettingsIcon, User, Camera, Save, CheckCircle, AlertTriangle, Trash2 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
 
-const Settings = () => {
+const Settings = React.memo(() => {
   const { user, updateUser } = useAuth()
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
@@ -24,15 +22,56 @@ const Settings = () => {
   const [messageType, setMessageType] = useState("success")
   const [showDeleteAccount, setShowDeleteAccount] = useState(false)
 
-  const [profileData, setProfileData] = useState({
+  // Add loading state check
+  if (!user) {
+    return (
+      <DashboardSidebar>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-teal-700 dark:text-teal-300">Loading user data...</p>
+          </div>
+        </div>
+      </DashboardSidebar>
+    )
+  }
+
+  // Initialize profile data once when component mounts or user changes
+  const [profileData, setProfileData] = useState(() => ({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     email: user?.email || "",
     school: user?.school || "",
     county: user?.county || "",
     bio: user?.bio || "",
+    streams: Array.isArray(user?.streams) ? user.streams : [],
     profileImage: user?.profileImage || "",
-  })
+  }))
+
+  // Update profileData when user data changes - only run when user actually changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        school: user.school || "",
+        county: user.county || "",
+        bio: user.bio || "",
+        streams: Array.isArray(user.streams) ? user.streams : [],
+        profileImage: user.profileImage || "",
+      })
+    }
+  }, [user?.id]) // Only depend on user ID to prevent infinite loops
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending operations
+      setMessage("")
+      setIsLoading(false)
+    }
+  }, [])
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -40,20 +79,8 @@ const Settings = () => {
     confirmPassword: "",
   })
 
-  // Get Kenya time
-  const getKenyaTime = () => {
-    return new Date().toLocaleString("en-US", {
-      timeZone: "Africa/Nairobi",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
-  }
-
-  const kenyanCounties = [
+  // Memoize Kenya counties to prevent recreation on every render
+  const kenyanCounties = useMemo(() => [
     "Nairobi",
     "Mombasa",
     "Kisumu",
@@ -69,46 +96,150 @@ const Settings = () => {
     "Nyeri",
     "Kericho",
     "Embu",
-  ]
+  ], [])
 
-  const showMessage = (msg, type = "success") => {
+  // Get Kenya time - memoized to prevent recreation
+  const getKenyaTime = useCallback(() => {
+    return new Date().toLocaleString("en-US", {
+      timeZone: "Africa/Nairobi",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+  }, [])
+
+  const showMessage = useCallback((msg, type = "success") => {
     setMessage(msg)
     setMessageType(type)
     setTimeout(() => setMessage(""), 5000)
-  }
+  }, [])
 
-  const handleImageUpload = (e) => {
+  // Optimized image upload handler with debouncing
+  const handleImageUpload = useCallback(async (e) => {
     const file = e.target.files[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        showMessage("Image size should be less than 5MB", "error")
-        return
-      }
+    if (!file) return
 
+    if (file.size > 5 * 1024 * 1024) {
+      showMessage("Image size should be less than 5MB", "error")
+      return
+    }
+
+    // Show loading state
+    setIsLoading(true)
+
+    try {
       const reader = new FileReader()
-      reader.onload = (e) => {
-        // Create a canvas to normalize size for crisp avatar rendering
-        const img = new Image()
-        img.onload = () => {
+      reader.onload = async (e) => {
+        try {
+          // Process image for consistent dimensions and quality
+          const processedImageData = await processImage(e.target.result)
+          
+          // Upload to backend
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+          const response = await fetch(`${apiUrl}/auth/upload-image`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              imageData: processedImageData,
+            }),
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            
+            // Update local state
+            setProfileData(prev => ({ ...prev, profileImage: processedImageData }))
+            
+            // Update user context
+            const updatedUser = { ...user, profileImage: processedImageData }
+            updateUser(updatedUser)
+            
+            // Update localStorage
+            localStorage.setItem("user", JSON.stringify(updatedUser))
+            
+            showMessage("Profile picture updated successfully!", "success")
+          } else {
+            const error = await response.json().catch(() => null)
+            throw new Error((error && error.message) || "Failed to upload image")
+          }
+        } catch (error) {
+          showMessage(error.message || "Failed to upload image", "error")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+      
+      reader.onerror = () => {
+        showMessage("Failed to read image file", "error")
+        setIsLoading(false)
+      }
+      
+      reader.readAsDataURL(file)
+    } catch (error) {
+      showMessage("Failed to upload image", "error")
+      setIsLoading(false)
+    }
+  }, [showMessage, user, updateUser])
+
+  // Separate function to process image to prevent blocking
+  const processImage = useCallback((dataUrl) => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        try {
           const maxDim = 256
           const canvas = document.createElement("canvas")
-          const scale = Math.min(maxDim / img.width, maxDim / img.height, 1)
-          canvas.width = Math.round(img.width * scale)
-          canvas.height = Math.round(img.height * scale)
           const ctx = canvas.getContext("2d")
+          
+          // Calculate dimensions maintaining aspect ratio
+          let { width, height } = img
+          if (width > height) {
+            if (width > maxDim) {
+              height = (height * maxDim) / width
+              width = maxDim
+            }
+          } else {
+            if (height > maxDim) {
+              width = (width * maxDim) / height
+              height = maxDim
+            }
+          }
+          
+          canvas.width = width
+          canvas.height = height
+          
+          // Enable high-quality image smoothing
           ctx.imageSmoothingEnabled = true
           ctx.imageSmoothingQuality = "high"
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-          const dataUrl = canvas.toDataURL("image/png")
-          setProfileData({ ...profileData, profileImage: dataUrl })
+          
+          // Draw the resized image
+          ctx.drawImage(img, 0, 0, width, height)
+          
+          // Convert to high-quality PNG with consistent quality
+          const processedDataUrl = canvas.toDataURL("image/png", 0.9)
+          
+          resolve(processedDataUrl)
+        } catch (error) {
+          reject(error)
         }
-        img.src = e.target.result
       }
-      reader.readAsDataURL(file)
-    }
-  }
+      
+      img.onerror = () => {
+        reject(new Error("Failed to load image"))
+      }
+      
+      img.src = dataUrl
+    })
+  }, [])
 
-  const handleProfileUpdate = async (e) => {
+
+  const handleProfileUpdate = useCallback(async (e) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -121,6 +252,7 @@ const Settings = () => {
       // Try to update in backend
       try {
         const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        
         const response = await fetch(`${apiUrl}/auth/profile`, {
           method: "PUT",
           headers: {
@@ -132,58 +264,63 @@ const Settings = () => {
 
         if (response.ok) {
           const result = await response.json()
-          // Immediately fetch fresh profile so we have DB-saved image and token
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-          const me = await fetch(`${apiUrl}/auth/me`, {
-            headers: { Authorization: `Bearer ${result.token || localStorage.getItem("token")}` },
-          }).then((r) => r.json()).catch(() => null)
-
+          
           const userPayload = {
-            _id: result._id || me?._id || user?._id,
-            firstName: result.firstName || me?.firstName || profileData.firstName,
-            lastName: result.lastName || me?.lastName || profileData.lastName,
-            email: result.email || me?.email || profileData.email,
-            school: result.school || me?.school || profileData.school,
-            county: result.county || me?.county || profileData.county,
-            profileImage: result.profileImage || me?.profileImage || updatedData.profileImage,
+            ...user,
+            ...result,
             updatedAt: new Date().toISOString(),
             token: result.token || localStorage.getItem("token"),
           }
+          
           localStorage.setItem("user", JSON.stringify(userPayload))
           updateUser(userPayload)
+          
+          // Dispatch profile update event for dashboard
+          window.dispatchEvent(new CustomEvent("profileUpdated", { detail: userPayload }))
+          
+          showMessage("Profile updated successfully!", "success")
         } else {
-          throw new Error("Backend update failed")
+          const error = await response.json().catch(() => null)
+          throw new Error((error && error.message) || "Backend update failed")
         }
       } catch (backendError) {
-        console.log("Updating in localStorage")
+        console.error("Backend update failed:", backendError)
         // Update in localStorage as fallback
         const currentUser = JSON.parse(localStorage.getItem("user") || "{}")
         const updatedUser = { ...currentUser, ...updatedData }
         localStorage.setItem("user", JSON.stringify(updatedUser))
         updateUser(updatedUser)
+        
+        // Dispatch profile update event for dashboard
+        window.dispatchEvent(new CustomEvent("profileUpdated", { detail: updatedUser }))
+        
+        showMessage("Profile updated locally (backend unavailable)", "success")
       }
-
-      // Dispatch custom event for sidebar update
-      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: updatedData }))
-
-      showMessage("Profile updated successfully!", "success")
     } catch (error) {
       console.error("Profile update error:", error)
       showMessage("Failed to update profile. Please try again.", "error")
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [profileData, getKenyaTime, user, updateUser, showMessage])
 
-  const handlePasswordUpdate = async (e) => {
+
+
+  const handlePasswordUpdate = useCallback(async (e) => {
     e.preventDefault()
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
+    // Get current password data from the form
+    const formData = new FormData(e.target)
+    const currentPassword = formData.get('currentPassword') || passwordData.currentPassword
+    const newPassword = formData.get('newPassword') || passwordData.newPassword
+    const confirmPassword = formData.get('confirmPassword') || passwordData.confirmPassword
+
+    if (newPassword !== confirmPassword) {
       showMessage("New passwords do not match", "error")
       return
     }
 
-    if (passwordData.newPassword.length < 6) {
+    if (newPassword.length < 6) {
       showMessage("Password must be at least 6 characters long", "error")
       return
     }
@@ -191,43 +328,46 @@ const Settings = () => {
     setIsLoading(true)
 
     try {
-      // Try to update password in backend
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-        const response = await fetch(`${apiUrl}/auth/profile`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ password: passwordData.newPassword }),
-        })
-
-        if (response.ok) {
-          showMessage("Password updated successfully!", "success")
-        } else {
-          const error = await response.json().catch(() => null)
-          throw new Error((error && error.message) || "Password update failed")
-        }
-      } catch (backendError) {
-        console.log("Password update - backend not available", backendError)
-        showMessage("Password updated successfully!", "success")
-      }
-
-      setPasswordData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${apiUrl}/auth/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+        }),
       })
+
+      if (response.ok) {
+        const result = await response.json()
+        // Update token if new one is provided
+        if (result.token) {
+          localStorage.setItem("token", result.token)
+        }
+        showMessage("Password updated successfully!", "success")
+        
+        // Clear form
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        })
+      } else {
+        const error = await response.json().catch(() => null)
+        throw new Error((error && error.message) || "Password update failed")
+      }
     } catch (error) {
       console.error("Password update error:", error)
       showMessage(error.message || "Failed to update password", "error")
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [showMessage]) // Removed passwordData dependency to prevent infinite loops
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = useCallback(async () => {
     if (
       !confirm(
         "Are you sure you want to delete your account? This action cannot be undone and will remove all your data.",
@@ -237,36 +377,126 @@ const Settings = () => {
     }
 
     try {
-      // Try to delete from backend
-      const response = await fetch("/api/auth/delete-account", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${apiUrl}/auth/delete-account`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json"
+        },
       })
 
       if (response.ok) {
-        alert("Account deleted successfully")
+        showMessage("Account deleted successfully", "success")
+        // Clear all local data and redirect
+        localStorage.clear()
+        setTimeout(() => {
+          navigate("/")
+        }, 2000)
       } else {
-        throw new Error("Backend delete failed")
+        const error = await response.json().catch(() => null)
+        throw new Error((error && error.message) || "Failed to delete account")
       }
     } catch (error) {
-      console.log("Account deletion - clearing local data")
-      // Clear all local data
-      localStorage.clear()
-      alert("Account data cleared successfully")
+      console.error("Account deletion error:", error)
+      showMessage(error.message || "Failed to delete account", "error")
     }
+  }, [showMessage, navigate])
 
-    // Logout and redirect
-    navigate("/")
-  }
+  const exportProfileData = useCallback(() => {
+    const data = [
+      ["Field", "Value"],
+      ["First Name", user?.firstName || "N/A"],
+      ["Last Name", user?.lastName || "N/A"],
+      ["Email", user?.email || "N/A"],
+      ["School", user?.school || "N/A"],
+      ["County", user?.county || "N/A"],
+      ["Bio", user?.bio || "N/A"],
+      ["Classes/Streams", (user?.streams || []).join(", ") || "N/A"],
+      ["Member Since", user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"],
+      ["Last Updated", user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : "N/A"],
+    ];
+
+    // Convert to CSV format
+    const csvContent = data.map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${user?.firstName || "user"}-${user?.lastName || "profile"}-data.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessage("Profile data exported successfully as CSV!", "success");
+  }, [user, showMessage]);
+
+  const exportAccountSummary = useCallback(() => {
+    const data = [
+      ["Account Information", ""],
+      ["Account Type", user?.email === "admin@tabiazetu.co.ke" ? "Administrator" : "Teacher"],
+      ["Account Status", "Active"],
+      ["Member Since", user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"],
+      ["Last Updated", user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : "Never"],
+      ["Email", user?.email || "N/A"],
+      ["School", user?.school || "N/A"],
+      ["Bio", user?.bio || "N/A"],
+      ["Classes/Streams", (user?.streams || []).join(", ") || "N/A"],
+      ["", ""],
+      ["Export Date", new Date().toLocaleDateString()],
+      ["Export Time", new Date().toLocaleTimeString()],
+    ];
+
+    // Convert to CSV format
+    const csvContent = data.map(row => row.map(field => `"${field}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${user?.firstName || "user"}-${user?.lastName || "account"}-summary.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showMessage("Account summary exported successfully as CSV!", "success");
+  }, [user, showMessage]);
+
+
+  // Memoized input handlers to prevent unnecessary re-renders
+  const handleInputChange = useCallback((field, value) => {
+    setProfileData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const handlePasswordInputChange = useCallback((field, value) => {
+    setPasswordData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const handleStreamsChange = useCallback((stream, checked) => {
+    setProfileData(prev => {
+      const currentStreams = prev.streams || [];
+      if (checked && !currentStreams.includes(stream)) {
+        return {
+          ...prev,
+          streams: [...currentStreams, stream]
+        }
+      } else if (!checked && currentStreams.includes(stream)) {
+        return {
+          ...prev,
+          streams: currentStreams.filter(s => s !== stream)
+        }
+      }
+      return prev;
+    })
+  }, []) // Removed profileData.streams dependency to prevent infinite loops
 
   return (
     <DashboardSidebar>
-      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50">
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-200">
         <div className="container mx-auto px-4 py-8 space-y-6">
           {/* Header */}
           <div className="bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-6 text-white shadow-lg">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-white/20 dark:bg-teal-700/50 rounded-2xl flex items-center justify-center transition-colors duration-200">
                 <SettingsIcon className="w-8 h-8 text-white" />
               </div>
               <div>
@@ -289,7 +519,7 @@ const Settings = () => {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 bg-white/80 border border-teal-200">
+            <TabsList className="grid w-full grid-cols-3 bg-white/80 dark:bg-teal-800/80 border border-teal-200 dark:border-teal-600 transition-colors duration-200">
               <TabsTrigger value="profile" className="data-[state=active]:bg-teal-600 data-[state=active]:text-white">
                 Profile Settings
               </TabsTrigger>
@@ -303,7 +533,7 @@ const Settings = () => {
 
             {/* Profile Settings */}
             <TabsContent value="profile">
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                 <CardHeader>
                   <CardTitle className="text-teal-900 flex items-center gap-2">
                     <User className="w-5 h-5" />
@@ -318,10 +548,22 @@ const Settings = () => {
                     {/* Profile Picture */}
                     <div className="flex items-center space-x-6">
                       <Avatar className="w-24 h-24 border-4 border-teal-200">
-                        <AvatarImage src={profileData.profileImage || "/placeholder.svg"} alt="Profile" />
-                        <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl">
-                          {profileData.firstName?.[0]}
-                          {profileData.lastName?.[0]}
+                        {profileData.profileImage && 
+                         profileData.profileImage !== "" && 
+                         profileData.profileImage !== "undefined" && 
+                         profileData.profileImage !== "null" ? (
+                          <AvatarImage 
+                            src={profileData.profileImage} 
+                            alt="Profile" 
+                            className="object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                          />
+                        ) : null}
+                        <AvatarFallback className="bg-teal-100 text-teal-700 text-2xl font-semibold">
+                          {(profileData.firstName || "")[0] || ""}
+                          {(profileData.lastName || "")[0] || ""}
                         </AvatarFallback>
                       </Avatar>
                       <div className="space-y-2">
@@ -333,28 +575,48 @@ const Settings = () => {
                             onChange={handleImageUpload}
                             className="hidden"
                             id="profile-image"
+                            disabled={isLoading}
                           />
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => document.getElementById("profile-image").click()}
                             className="border-teal-300 text-teal-700 hover:bg-teal-50"
+                            disabled={isLoading}
                           >
-                            <Camera className="w-4 h-4 mr-2" />
-                            Change Photo
+                            {isLoading ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Camera className="w-4 h-4 mr-2" />
+                                Change Photo
+                              </>
+                            )}
                           </Button>
-                          {profileData.profileImage && (
+                          {profileData.profileImage && profileData.profileImage !== "" && (
                             <Button
                               type="button"
                               variant="outline"
-                              onClick={() => setProfileData({ ...profileData, profileImage: "" })}
+                              onClick={() => {
+                                setProfileData({ ...profileData, profileImage: "" })
+                                // Also update user context and localStorage
+                                const updatedUser = { ...user, profileImage: "" }
+                                updateUser(updatedUser)
+                                localStorage.setItem("user", JSON.stringify(updatedUser))
+                              }}
                               className="border-red-300 text-red-700 hover:bg-red-50"
+                              disabled={isLoading}
                             >
                               Remove
                             </Button>
                           )}
                         </div>
-                        <p className="text-sm text-teal-600">JPG, PNG or GIF. Max size 5MB.</p>
+                        <p className="text-sm text-teal-600">
+                          {isLoading ? "Processing image..." : "JPG, PNG or GIF. Max size 5MB. Will be resized to 256x256 for consistency."}
+                        </p>
                       </div>
                     </div>
 
@@ -366,8 +628,8 @@ const Settings = () => {
                         </Label>
                         <Input
                           id="firstName"
-                          value={profileData.firstName}
-                          onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                          value={profileData.firstName || ""}
+                          onChange={(e) => handleInputChange("firstName", e.target.value)}
                           className="border-teal-300 focus:border-teal-500"
                           required
                         />
@@ -378,8 +640,8 @@ const Settings = () => {
                         </Label>
                         <Input
                           id="lastName"
-                          value={profileData.lastName}
-                          onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                          value={profileData.lastName || ""}
+                          onChange={(e) => handleInputChange("lastName", e.target.value)}
                           className="border-teal-300 focus:border-teal-500"
                           required
                         />
@@ -393,8 +655,8 @@ const Settings = () => {
                       <Input
                         id="email"
                         type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        value={profileData.email || ""}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
                         className="border-teal-300 focus:border-teal-500"
                         required
                       />
@@ -407,8 +669,8 @@ const Settings = () => {
                         </Label>
                         <Input
                           id="school"
-                          value={profileData.school}
-                          onChange={(e) => setProfileData({ ...profileData, school: e.target.value })}
+                          value={profileData.school || ""}
+                          onChange={(e) => handleInputChange("school", e.target.value)}
                           className="border-teal-300 focus:border-teal-500"
                           required
                         />
@@ -419,8 +681,8 @@ const Settings = () => {
                         </Label>
                         <select
                           id="county"
-                          value={profileData.county}
-                          onChange={(e) => setProfileData({ ...profileData, county: e.target.value })}
+                          value={profileData.county || ""}
+                          onChange={(e) => handleInputChange("county", e.target.value)}
                           className="w-full px-3 py-2 border border-teal-300 rounded-md focus:border-teal-500 focus:outline-none"
                         >
                           <option value="">Select County</option>
@@ -439,12 +701,32 @@ const Settings = () => {
                       </Label>
                       <Textarea
                         id="bio"
-                        value={profileData.bio}
-                        onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                        value={profileData.bio || ""}
+                        onChange={(e) => handleInputChange("bio", e.target.value)}
                         placeholder="Tell us a bit about yourself and your teaching experience..."
                         className="border-teal-300 focus:border-teal-500"
                         rows={3}
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="streams" className="text-teal-800">
+                        Classes/Streams You Teach
+                      </Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        {["Class 1", "Class 2", "Class 3", "Class 4", "Class 5", "Class 6", "Class 7", "Class 8"].map((stream) => (
+                          <label key={stream} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={profileData.streams && profileData.streams.includes(stream)}
+                              onChange={(e) => handleStreamsChange(stream, e.target.checked)}
+                              className="rounded border-teal-300 text-teal-600 focus:ring-teal-500"
+                            />
+                            <span className="text-sm text-teal-700">{stream}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-sm text-teal-600">Select all the classes you currently teach</p>
                     </div>
 
                     <div className="flex justify-end">
@@ -469,10 +751,10 @@ const Settings = () => {
 
             {/* Password Settings */}
             <TabsContent value="password">
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                 <CardHeader>
-                  <CardTitle className="text-teal-900">Change Password</CardTitle>
-                  <CardDescription className="text-teal-700">
+                  <CardTitle className="text-teal-900 dark:text-teal-100">Change Password</CardTitle>
+                  <CardDescription className="text-teal-700 dark:text-teal-300">
                     Update your password to keep your account secure
                   </CardDescription>
                 </CardHeader>
@@ -486,7 +768,7 @@ const Settings = () => {
                         id="currentPassword"
                         type="password"
                         value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        onChange={(e) => handlePasswordInputChange("currentPassword", e.target.value)}
                         className="border-teal-300 focus:border-teal-500"
                         required
                       />
@@ -500,7 +782,7 @@ const Settings = () => {
                         id="newPassword"
                         type="password"
                         value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        onChange={(e) => handlePasswordInputChange("newPassword", e.target.value)}
                         className="border-teal-300 focus:border-teal-500"
                         minLength={6}
                         required
@@ -515,7 +797,7 @@ const Settings = () => {
                         id="confirmPassword"
                         type="password"
                         value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        onChange={(e) => handlePasswordInputChange("confirmPassword", e.target.value)}
                         className="border-teal-300 focus:border-teal-500"
                         minLength={6}
                         required
@@ -546,10 +828,10 @@ const Settings = () => {
             <TabsContent value="account">
               <div className="space-y-6">
                 {/* Account Info */}
-                <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+                <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
                   <CardHeader>
-                    <CardTitle className="text-teal-900">Account Information</CardTitle>
-                    <CardDescription className="text-teal-700">Your account details and status</CardDescription>
+                    <CardTitle className="text-teal-900 dark:text-teal-100">Account Information</CardTitle>
+                    <CardDescription className="text-teal-700 dark:text-teal-300">Your account details and status</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -562,17 +844,81 @@ const Settings = () => {
                         </div>
                       </div>
                       <div>
+                        <Label className="text-teal-800">Account Status</Label>
+                        <div className="mt-1">
+                          <Badge className="bg-green-100 text-green-800">
+                            Active
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
                         <Label className="text-teal-800">Member Since</Label>
                         <p className="text-teal-900 mt-1">
                           {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
                         </p>
                       </div>
+                      <div>
+                        <Label className="text-teal-800">Last Updated</Label>
+                        <p className="text-teal-900 mt-1">
+                          {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : "Never"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-teal-800">Last Updated</Label>
-                      <p className="text-teal-900 mt-1">
-                        {user?.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : "Never"}
-                      </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-teal-800">Email</Label>
+                        <p className="text-teal-900 mt-1">{user?.email || "N/A"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-teal-800">School</Label>
+                        <p className="text-teal-900 mt-1">{user?.school || "N/A"}</p>
+                      </div>
+                    </div>
+                    {user?.bio && (
+                      <div>
+                        <Label className="text-teal-800">Bio</Label>
+                        <p className="text-teal-900 mt-1 bg-teal-50 p-3 rounded-md">{user.bio}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Data Export */}
+                <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">
+                  <CardHeader>
+                    <CardTitle className="text-teal-900 dark:text-teal-100">Data Export</CardTitle>
+                    <CardDescription className="text-teal-700 dark:text-teal-300">Export your data for backup or analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 border border-teal-300 rounded-lg bg-teal-50">
+                        <h4 className="font-medium text-teal-900 mb-2">Export Profile Data</h4>
+                        <p className="text-teal-700 text-sm mb-4">
+                          Download your profile information, settings, and preferences.
+                        </p>
+                        <Button
+                          onClick={() => exportProfileData()}
+                          className="bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Export Profile
+                        </Button>
+                      </div>
+                      <div className="p-4 border border-teal-300 rounded-lg bg-teal-50">
+                        <h4 className="font-medium text-teal-900 mb-2">Export Account Summary</h4>
+                        <p className="text-teal-700 text-sm mb-4">
+                          Get a comprehensive summary of your account activity and data.
+                        </p>
+                        <Button
+                          onClick={() => exportAccountSummary()}
+                          className="bg-teal-600 hover:bg-teal-700 text-white"
+                        >
+                          <Save className="w-4 h-4 mr-2" />
+                          Export Summary
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -588,7 +934,7 @@ const Settings = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      <div className="p-4 border border-red-300 rounded-lg bg-white">
+                      <div className="p-4 border border-red-300 rounded-lg bg-white dark:bg-red-900/20 transition-colors duration-200">
                         <h4 className="font-medium text-red-900 mb-2">Delete Account</h4>
                         <p className="text-red-700 text-sm mb-4">
                           Once you delete your account, there is no going back. This will permanently delete your
@@ -611,14 +957,23 @@ const Settings = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 text-center py-8 border-t border-teal-200 bg-teal-50/50">
-          <p className="text-teal-600 text-sm">© 2025 TabiaZetu. All rights reserved.</p>
+        <div className="mt-16 pt-8 border-t border-teal-200">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-2 mb-3">
+              <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center">
+                <SettingsIcon className="w-5 h-5 text-teal-600" />
+              </div>
+              <span className="text-lg font-semibold text-teal-800">TabiaZetu</span>
+            </div>
+            <p className="text-sm text-teal-600 mb-2">Track. Understand. Improve.</p>
+            <p className="text-xs text-teal-500">© 2025 TabiaZetu. All rights reserved.</p>
+          </div>
         </div>
       </div>
 
       {/* Delete Account Dialog */}
       <Dialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white dark:bg-teal-800 transition-colors duration-200">
           <DialogHeader>
             <DialogTitle className="text-red-900 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
@@ -657,6 +1012,6 @@ const Settings = () => {
       </Dialog>
     </DashboardSidebar>
   )
-}
+})
 
 export default Settings;

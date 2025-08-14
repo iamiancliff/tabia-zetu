@@ -1,5 +1,3 @@
-"use client"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -10,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AlertTriangle, Users, Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
-const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
+const BehaviorForm = ({ students = [], onSubmit, onCancel, onFormChange }) => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     student: "",
@@ -18,20 +16,30 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
     subject: "",
     timeOfDay: "",
     severity: "medium",
-    description: "",
+    notes: "",
     outcome: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
   const behaviorTypes = [
-    { value: "positive", label: "Positive Behavior" },
-    { value: "participation", label: "Active Participation" },
-    { value: "helpful", label: "Helpful to Others" },
-    { value: "disruptive", label: "Disruptive Behavior" },
-    { value: "aggressive", label: "Aggressive Behavior" },
-    { value: "late", label: "Late to Class" },
-    { value: "absent", label: "Absent" },
+    { value: "excellent_work", label: "Excellent Academic Work" },
+    { value: "class_participation", label: "Active Class Participation" },
+    { value: "helping_others", label: "Helping Other Students" },
+    { value: "leadership", label: "Showing Leadership" },
+    { value: "creativity", label: "Creative Thinking" },
+    { value: "talking_in_class", label: "Talking During Class" },
+    { value: "not_listening", label: "Not Paying Attention" },
+    { value: "disrupting_class", label: "Disrupting Class Activities" },
+    { value: "bullying", label: "Bullying Behavior" },
+    { value: "late_to_class", label: "Late to Class" },
+    { value: "absent", label: "Absent from Class" },
+    { value: "incomplete_work", label: "Incomplete Homework/Classwork" },
+    { value: "using_phone", label: "Using Phone in Class" },
+    { value: "fighting", label: "Fighting with Peers" },
+    { value: "respectful", label: "Showing Respect to Teachers" },
+    { value: "organized", label: "Well Organized" },
+    { value: "teamwork", label: "Good Teamwork" },
   ]
 
   const subjects = [
@@ -41,12 +49,18 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
     "Science",
     "Social Studies",
     "Religious Education",
+    "Creative Arts",
     "Physical Education",
-    "Art & Craft",
-    "Music",
     "Life Skills",
-    "Break Time",
-    "Assembly",
+    "Agriculture",
+    "Home Science",
+    "Computer Studies",
+    "Business Studies",
+    "French",
+    "German",
+    "Arabic",
+    "Indigenous Languages",
+    "Sign Language",
   ]
 
   const timePeriods = [
@@ -62,19 +76,54 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
     { value: "high", label: "High" },
   ]
 
+  const handleFormChange = (field, value) => {
+    const newFormData = { ...formData, [field]: value }
+    setFormData(newFormData)
+    
+    // Call onFormChange callback if provided
+    if (onFormChange) {
+      // Only call if we have enough data to make meaningful suggestions
+      if (newFormData.student && newFormData.behaviorType) {
+        onFormChange(newFormData)
+      } else {
+        onFormChange(null)
+      }
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError("")
 
-    if (!formData.student || !formData.behaviorType || !formData.subject || !formData.timeOfDay) {
-      setError("Please fill in all required fields")
+    // Check all required fields including notes
+    if (!formData.student || !formData.behaviorType || !formData.subject || !formData.timeOfDay || !formData.notes) {
+      setError("Please fill in all required fields including the description")
+      return
+    }
+
+    // Additional validation for notes content
+    if (formData.notes.trim().length < 10) {
+      setError("Please provide a detailed description (at least 10 characters)")
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      await onSubmit(formData)
+      // Map form data to backend payload - use notes instead of description
+      const payload = {
+        studentId: formData.student,
+        behaviorType: formData.behaviorType,
+        subject: formData.subject,
+        timeOfDay: formData.timeOfDay,
+        severity: formData.severity,
+        notes: formData.notes.trim(),
+        outcome: formData.outcome,
+      }
+
+      console.log("🔍 [BehaviorForm] Sending payload:", payload)
+      await onSubmit(payload)
+      
       // Reset form
       setFormData({
         student: "",
@@ -82,7 +131,7 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
         subject: "",
         timeOfDay: "",
         severity: "medium",
-        description: "",
+        notes: "",
         outcome: "",
       })
     } catch (error) {
@@ -122,7 +171,7 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
         <Alert className="border-red-500 bg-red-50">
           <AlertTriangle className="h-4 w-4" />
@@ -130,13 +179,13 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="student" className="text-teal-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label htmlFor="student" className="text-teal-800 font-medium">
             Student *
           </Label>
-          <Select value={formData.student} onValueChange={(value) => setFormData({ ...formData, student: value })}>
-            <SelectTrigger className="border-teal-300">
+          <Select value={formData.student} onValueChange={(value) => handleFormChange('student', value)}>
+            <SelectTrigger className="border-teal-300 h-11">
               <SelectValue placeholder="Select student" />
             </SelectTrigger>
             <SelectContent>
@@ -149,15 +198,15 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="behaviorType" className="text-teal-800">
+        <div className="space-y-3">
+          <Label htmlFor="behaviorType" className="text-teal-800 font-medium">
             Behavior Type *
           </Label>
           <Select
             value={formData.behaviorType}
-            onValueChange={(value) => setFormData({ ...formData, behaviorType: value })}
+            onValueChange={(value) => handleFormChange('behaviorType', value)}
           >
-            <SelectTrigger className="border-teal-300">
+            <SelectTrigger className="border-teal-300 h-11">
               <SelectValue placeholder="Select behavior type" />
             </SelectTrigger>
             <SelectContent>
@@ -171,13 +220,13 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="subject" className="text-teal-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label htmlFor="subject" className="text-teal-800 font-medium">
             Subject *
           </Label>
-          <Select value={formData.subject} onValueChange={(value) => setFormData({ ...formData, subject: value })}>
-            <SelectTrigger className="border-teal-300">
+          <Select value={formData.subject} onValueChange={(value) => handleFormChange('subject', value)}>
+            <SelectTrigger className="border-teal-300 h-11">
               <SelectValue placeholder="Select subject" />
             </SelectTrigger>
             <SelectContent>
@@ -190,12 +239,12 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="timeOfDay" className="text-teal-800">
+        <div className="space-y-3">
+          <Label htmlFor="timeOfDay" className="text-teal-800 font-medium">
             Time of Day *
           </Label>
-          <Select value={formData.timeOfDay} onValueChange={(value) => setFormData({ ...formData, timeOfDay: value })}>
-            <SelectTrigger className="border-teal-300">
+          <Select value={formData.timeOfDay} onValueChange={(value) => handleFormChange('timeOfDay', value)}>
+            <SelectTrigger className="border-teal-300 h-11">
               <SelectValue placeholder="Select time period" />
             </SelectTrigger>
             <SelectContent>
@@ -209,12 +258,12 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="severity" className="text-teal-800">
+      <div className="space-y-3">
+        <Label htmlFor="severity" className="text-teal-800 font-medium">
           Severity Level
         </Label>
-        <Select value={formData.severity} onValueChange={(value) => setFormData({ ...formData, severity: value })}>
-          <SelectTrigger className="border-teal-300">
+                  <Select value={formData.severity} onValueChange={(value) => handleFormChange('severity', value)}>
+          <SelectTrigger className="border-teal-300 h-11">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -227,48 +276,52 @@ const BehaviorForm = ({ students = [], onSubmit, onCancel }) => {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description" className="text-teal-800">
+      <div className="space-y-3">
+        <Label htmlFor="description" className="text-teal-800 font-medium">
           Description *
         </Label>
         <Textarea
           id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          value={formData.notes}
+                      onChange={(e) => handleFormChange('notes', e.target.value)}
           placeholder="Describe what happened in detail..."
-          className="border-teal-300 focus:border-teal-500"
-          rows={3}
+          className="border-teal-300 focus:border-teal-500 min-h-[80px] resize-y"
+          rows={4}
           required
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="outcome" className="text-teal-800">
+      <div className="space-y-3">
+        <Label htmlFor="outcome" className="text-teal-800 font-medium">
           Action Taken / Outcome
         </Label>
         <Textarea
           id="outcome"
           value={formData.outcome}
-          onChange={(e) => setFormData({ ...formData, outcome: e.target.value })}
+                      onChange={(e) => handleFormChange('outcome', e.target.value)}
           placeholder="What action was taken or what was the outcome?"
-          className="border-teal-300 focus:border-teal-500"
-          rows={2}
+          className="border-teal-300 focus:border-teal-500 min-h-[60px] resize-y"
+          rows={3}
         />
       </div>
 
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end space-x-4 pt-4">
         {onCancel && (
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            className="border-teal-300 text-teal-700 bg-transparent"
+            className="border-teal-300 text-teal-700 bg-transparent hover:bg-teal-50 px-6 py-2"
             disabled={isSubmitting}
           >
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting} className="bg-teal-600 hover:bg-teal-700 text-white">
+        <Button 
+          type="submit" 
+          disabled={isSubmitting} 
+          className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2"
+        >
           {isSubmitting ? "Logging..." : "Log Behavior"}
         </Button>
       </div>

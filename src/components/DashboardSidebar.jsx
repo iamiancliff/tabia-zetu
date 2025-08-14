@@ -1,6 +1,4 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -28,7 +26,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 
-const DashboardSidebar = ({ children }) => {
+const DashboardSidebar = React.memo(({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuth()
@@ -39,24 +37,29 @@ const DashboardSidebar = ({ children }) => {
   // Listen for profile updates
   useEffect(() => {
     const handleProfileUpdate = (event) => {
-      setUserProfile(event.detail)
+      // Only update if the user ID is different to prevent unnecessary re-renders
+      if (event.detail?.id !== userProfile?.id) {
+        setUserProfile(event.detail)
+      }
     }
 
     window.addEventListener("profileUpdated", handleProfileUpdate)
     return () => window.removeEventListener("profileUpdated", handleProfileUpdate)
-  }, [])
+  }, [userProfile?.id])
 
-  // Update user profile when user context changes
+  // Update user profile when user context changes - only when user ID changes
   useEffect(() => {
-    setUserProfile(user)
-  }, [user])
+    if (user?.id !== userProfile?.id) {
+      setUserProfile(user)
+    }
+  }, [user?.id, userProfile?.id])
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout()
     navigate("/")
-  }
+  }, [logout, navigate])
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = useCallback(async () => {
     if (
       !confirm(
         "Are you sure you want to delete your account? This action cannot be undone and will remove all your data.",
@@ -87,47 +90,55 @@ const DashboardSidebar = ({ children }) => {
     // Logout and redirect
     logout()
     navigate("/")
-  }
+  }, [logout, navigate])
 
   const isAdmin = user?.email === "admin@tabiazetu.co.ke"
 
-  const teacherNavItems = [
+  // Memoize navigation items to prevent recreation
+  const teacherNavItems = React.useMemo(() => [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Users, label: "Students", path: "/students" },
     { icon: BookOpen, label: "Behavior Log", path: "/behavior-log" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
     { icon: Settings, label: "Settings", path: "/settings" },
     { icon: HelpCircle, label: "Help", path: "/help" },
-  ]
+  ], [])
 
-  const adminNavItems = [
+  const adminNavItems = React.useMemo(() => [
     { icon: Shield, label: "Admin Dashboard", path: "/dashboard" },
     { icon: UserCheck, label: "Teachers", path: "/teachers" },
     { icon: BarChart3, label: "Reports", path: "/reports" },
     { icon: Settings, label: "Admin Settings", path: "/admin-settings" },
-    { icon: HelpCircle, label: "Help", path: "/help" },
-  ]
+  ], [])
 
   const navItems = isAdmin ? adminNavItems : teacherNavItems
 
-  const isActive = (path) => location.pathname === path
+  const isActive = useCallback((path) => location.pathname === path, [location.pathname])
+
+  const handleNavigation = useCallback((path) => {
+    navigate(path)
+    setIsSidebarOpen(false)
+  }, [navigate])
+
+  const toggleSidebar = useCallback(() => setIsSidebarOpen(prev => !prev), [])
+  const closeSidebar = useCallback(() => setIsSidebarOpen(false), [])
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-teal-50 to-white">
+            <div className="flex h-screen bg-gradient-to-br from-slate-50 to-teal-50 transition-colors duration-200">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={closeSidebar} />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white/90 backdrop-blur-xl border-r border-teal-200 shadow-xl transform transition-transform duration-300 ease-in-out ${
+                  className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-white/90 backdrop-blur-xl border-r border-teal-200 shadow-xl transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-teal-700">
+          <div className="flex-shrink-0 p-6 border-b border-teal-200 bg-gradient-to-r from-teal-600 to-teal-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -141,7 +152,7 @@ const DashboardSidebar = ({ children }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsSidebarOpen(false)}
+                onClick={closeSidebar}
                 className="lg:hidden text-white hover:bg-white/20"
               >
                 <X className="w-5 h-5" />
@@ -150,16 +161,29 @@ const DashboardSidebar = ({ children }) => {
           </div>
 
           {/* User Profile */}
-          <div className="p-4 border-b border-teal-200">
+          <div className="flex-shrink-0 p-4 border-b border-teal-200">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-teal-50">
                   <div className="flex items-center space-x-3 w-full">
-                    <Avatar className="w-10 h-10 border-2 border-teal-200">
-                      <AvatarImage src={userProfile?.profileImage || "/placeholder.svg"} alt="Profile" />
-                      <AvatarFallback className="bg-teal-100 text-teal-700">
-                        {userProfile?.firstName?.[0]}
-                        {userProfile?.lastName?.[0]}
+                                          <Avatar className="w-10 h-10 border-2 border-teal-200">
+                      {userProfile?.profileImage && 
+                       userProfile.profileImage !== "" && 
+                       userProfile.profileImage !== "undefined" && 
+                       userProfile.profileImage !== "null" ? (
+                        <AvatarImage 
+                          src={userProfile.profileImage} 
+                          alt="Profile" 
+                          className="object-cover"
+                          onError={(e) => {
+                            console.log("Sidebar profile image failed to load, using fallback")
+                            e.target.style.display = 'none'
+                          }}
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-teal-100 text-teal-700 font-semibold">
+                        {(userProfile?.firstName || "")[0] || ""}
+                        {(userProfile?.lastName || "")[0] || ""}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
@@ -202,8 +226,10 @@ const DashboardSidebar = ({ children }) => {
             </DropdownMenu>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {/* Navigation - Scrollable */}
+          <nav 
+            className="flex-1 p-4 space-y-2 overflow-y-auto sidebar-nav scroll-smooth"
+          >
             {navItems.map((item) => (
               <Button
                 key={item.path}
@@ -214,8 +240,7 @@ const DashboardSidebar = ({ children }) => {
                     : "text-teal-700 hover:bg-teal-50 hover:text-teal-800"
                 }`}
                 onClick={() => {
-                  navigate(item.path)
-                  setIsSidebarOpen(false)
+                  handleNavigation(item.path)
                 }}
               >
                 <item.icon className="w-5 h-5 mr-3" />
@@ -224,22 +249,16 @@ const DashboardSidebar = ({ children }) => {
             ))}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-teal-200 bg-teal-50/50">
-            <div className="text-center">
-              <div className="text-sm text-teal-600 mb-2">{isAdmin ? "System Administrator" : "Teacher Dashboard"}</div>
-              <div className="text-xs text-teal-500">© 2025 TabiaZetu</div>
-            </div>
-          </div>
+
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-teal-200 p-4">
+        <div className="lg:hidden bg-white border-b border-teal-200 p-4 transition-colors duration-200">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => setIsSidebarOpen(true)} className="text-teal-700">
+            <Button variant="ghost" size="sm" onClick={toggleSidebar} className="text-teal-700">
               <Menu className="w-5 h-5" />
             </Button>
             <div className="flex items-center space-x-2">
@@ -251,12 +270,16 @@ const DashboardSidebar = ({ children }) => {
         </div>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main 
+          className="flex-1 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 scroll-smooth relative z-20"
+        >
+          {children}
+        </main>
       </div>
 
       {/* Delete Account Dialog */}
       <Dialog open={showDeleteAccount} onOpenChange={setShowDeleteAccount}>
-        <DialogContent className="bg-white">
+        <DialogContent className="bg-white transition-colors duration-200">
           <DialogHeader>
             <DialogTitle className="text-red-900 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
@@ -268,7 +291,7 @@ const DashboardSidebar = ({ children }) => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200 transition-colors duration-200">
               <h4 className="font-medium text-red-900 mb-2">What will be deleted:</h4>
               <ul className="text-sm text-red-800 space-y-1">
                 <li>• Your profile and account information</li>
@@ -295,6 +318,6 @@ const DashboardSidebar = ({ children }) => {
       </Dialog>
     </div>
   )
-}
+})
 
 export default DashboardSidebar;
