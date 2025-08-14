@@ -31,6 +31,22 @@ const userSchema = mongoose.Schema(
         return this.role === "teacher"
       },
     },
+    county: {
+      type: String,
+      default: "",
+    },
+    bio: {
+      type: String,
+      default: "",
+    },
+    streams: {
+      type: [String],
+      default: [],
+    },
+    profileImage: {
+      type: String, // Base64 data URL or public URL
+      default: "",
+    },
     isActive: {
       type: Boolean,
       default: true,

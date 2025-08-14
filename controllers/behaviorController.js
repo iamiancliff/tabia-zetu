@@ -16,7 +16,20 @@ const getBehaviorLogs = asyncHandler(async (req, res) => {
 const createBehaviorLog = asyncHandler(async (req, res) => {
   const { studentId, behaviorType, subject, timeOfDay, severity, notes, outcome, date } = req.body
 
+  // Debug logging
+  console.log("🔍 [Backend] Received request body:", req.body)
+  console.log("🔍 [Backend] Extracted fields:", { studentId, behaviorType, subject, timeOfDay, severity, notes, outcome, date })
+  console.log("🔍 [Backend] User making request:", req.user._id)
+
   if (!studentId || !behaviorType || !notes) {
+    console.log("❌ [Backend] Validation failed:", { 
+      hasStudentId: !!studentId, 
+      hasBehaviorType: !!behaviorType, 
+      hasNotes: !!notes,
+      studentIdType: typeof studentId,
+      behaviorTypeType: typeof behaviorType,
+      notesType: typeof notes
+    })
     res.status(400)
     throw new Error("Please provide student, behavior type, and notes")
   }
@@ -24,9 +37,12 @@ const createBehaviorLog = asyncHandler(async (req, res) => {
   // Ensure the student belongs to the authenticated teacher
   const student = await Student.findOne({ _id: studentId, teacher: req.user._id })
   if (!student) {
+    console.log("❌ [Backend] Student not found or not authorized:", { studentId, teacherId: req.user._id })
     res.status(404)
     throw new Error("Student not found or not authorized")
   }
+
+  console.log("✅ [Backend] Student found:", student.name)
 
   const behaviorLog = await BehaviorLog.create({
     student: studentId,
@@ -40,6 +56,7 @@ const createBehaviorLog = asyncHandler(async (req, res) => {
     date: date || Date.now(),
   })
 
+  console.log("✅ [Backend] Behavior log created successfully:", behaviorLog._id)
   res.status(201).json(behaviorLog)
 })
 

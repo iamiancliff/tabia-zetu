@@ -102,9 +102,22 @@ const registerUser = asyncHandler(async (req, res) => {
         email: user.email,
         county: user.county,
         school: user.school,
+        bio: user.bio,
+        streams: user.streams,
+        profileImage: user.profileImage,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
         token: token,
       }
-      console.log("✅ [BACKEND REGISTER] Response data:", { ...responseData, token: "***" })
+      console.log("✅ [BACKEND REGISTER] Response data:", { 
+        ...responseData, 
+        token: "***",
+        hasProfileImage: !!user.profileImage,
+        hasBio: !!user.bio,
+        streams: user.streams
+      })
       
       res.status(201).json(responseData)
       console.log("✅ [BACKEND REGISTER] ===== REGISTRATION SUCCESS =====")
@@ -173,9 +186,22 @@ const loginUser = asyncHandler(async (req, res) => {
           email: user.email,
           county: user.county,
           school: user.school,
+          bio: user.bio,
+          streams: user.streams,
+          profileImage: user.profileImage,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
           token: token,
         }
-        console.log("✅ [BACKEND LOGIN] Response data:", { ...responseData, token: "***" })
+        console.log("✅ [BACKEND LOGIN] Response data:", { 
+          ...responseData, 
+          token: "***",
+          hasProfileImage: !!user.profileImage,
+          hasBio: !!user.bio,
+          streams: user.streams
+        })
         
         res.json(responseData)
         console.log("✅ [BACKEND LOGIN] ===== LOGIN SUCCESS =====")
@@ -209,11 +235,50 @@ const getMe = asyncHandler(async (req, res) => {
       email: user.email,
       school: user.school,
       county: user.county,
+      bio: user.bio,
+      streams: user.streams,
+      profileImage: user.profileImage,
       isActive: user.isActive,
+      role: user.role,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
     })
   } else {
     res.status(404)
     throw new Error("User not found")
+  }
+})
+
+// @desc    Upload profile image
+// @route   POST /api/auth/upload-image
+// @access  Private
+const uploadProfileImage = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+
+  if (!user) {
+    res.status(404)
+    throw new Error("User not found")
+  }
+
+  // Check if image data is provided
+  if (!req.body.imageData) {
+    res.status(400)
+    throw new Error("No image data provided")
+  }
+
+  try {
+    // Update user's profile image
+    user.profileImage = req.body.imageData
+    await user.save()
+
+    res.json({
+      message: "Profile image uploaded successfully",
+      profileImage: user.profileImage,
+      token: generateToken(user._id),
+    })
+  } catch (error) {
+    res.status(500)
+    throw new Error("Failed to upload profile image")
   }
 })
 
@@ -227,10 +292,14 @@ const updateProfile = asyncHandler(async (req, res) => {
     user.firstName = req.body.firstName || user.firstName
     user.lastName = req.body.lastName || user.lastName
     user.email = req.body.email || user.email
-    if (req.body.password) {
-      user.password = req.body.password // Password hashing handled by pre-save hook
-    }
     user.school = req.body.school || user.school
+    user.county = req.body.county || user.county
+    user.bio = req.body.bio !== undefined ? req.body.bio : user.bio
+    user.streams = req.body.streams || user.streams
+    // Only update profile image if it's provided and different
+    if (req.body.profileImage && req.body.profileImage !== user.profileImage) {
+      user.profileImage = req.body.profileImage
+    }
 
     const updatedUser = await user.save()
 
@@ -241,6 +310,9 @@ const updateProfile = asyncHandler(async (req, res) => {
       email: updatedUser.email,
       county: updatedUser.county,
       school: updatedUser.school,
+      bio: updatedUser.bio,
+      streams: updatedUser.streams,
+      profileImage: updatedUser.profileImage,
       token: generateToken(updatedUser._id),
     })
   } else {
@@ -249,4 +321,63 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
 })
 
-export { registerUser, loginUser, getMe, updateProfile }
+// @desc    Change user password
+// @route   PUT /api/auth/change-password
+// @access  Private
+const changePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body
+
+  if (!currentPassword || !newPassword) {
+    res.status(400)
+    throw new Error("Please provide both current and new password")
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400)
+    throw new Error("New password must be at least 6 characters long")
+  }
+
+  const user = await User.findById(req.user._id)
+
+  if (user) {
+    // Verify current password
+    const isPasswordValid = await user.matchPassword(currentPassword)
+    if (!isPasswordValid) {
+      res.status(401)
+      throw new Error("Current password is incorrect")
+    }
+
+    // Update password
+    user.password = newPassword
+    await user.save()
+
+    res.json({
+      message: "Password updated successfully",
+      token: generateToken(user._id),
+    })
+  } else {
+    res.status(404)
+    throw new Error("User not found")
+  }
+})
+
+// @desc    Delete user account
+// @route   DELETE /api/auth/delete-account
+// @access  Private
+const deleteAccount = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id)
+
+  if (user) {
+    // Delete the user
+    await User.findByIdAndDelete(req.user._id)
+    
+    res.json({
+      message: "Account deleted successfully"
+    })
+  } else {
+    res.status(404)
+    throw new Error("User not found")
+  }
+})
+
+export { registerUser, loginUser, getMe, updateProfile, changePassword, deleteAccount, uploadProfileImage }

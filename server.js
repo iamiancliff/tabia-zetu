@@ -8,6 +8,9 @@ import behaviorRoutes from "./routes/behaviors.js"
 import adminRoutes from "./routes/admin.js"
 import reportRoutes from "./routes/reports.js"
 import suggestionRoutes from "./routes/suggestions.js"
+import aiInsightRoutes from "./routes/ai-insights.js"
+import behaviorPredictionRoutes from "./routes/behavior-predictions.js"
+import teacherActionRoutes from "./routes/teacher-actions.js"
 
 // Load environment variables
 dotenv.config()
@@ -81,6 +84,18 @@ try {
   console.log("Attempting to load suggestion routes...")
   app.use("/api/suggestions", suggestionRoutes)
   console.log("✅ Suggestion routes loaded")
+
+  console.log("Attempting to load AI insight routes...")
+  app.use("/api/ai-insights", aiInsightRoutes)
+  console.log("✅ AI insight routes loaded")
+
+  console.log("Attempting to load behavior prediction routes...")
+  app.use("/api/behavior-predictions", behaviorPredictionRoutes)
+  console.log("✅ Behavior prediction routes loaded")
+
+  console.log("Attempting to load teacher action routes...")
+  app.use("/api/teacher-actions", teacherActionRoutes)
+  console.log("✅ Teacher action routes loaded")
 } catch (error) {
   console.error("❌ Error during route loading:", error.message)
   process.exit(1)
