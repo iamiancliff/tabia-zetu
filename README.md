@@ -1,20 +1,24 @@
 
 # 🧠 TabiaZetu – Behavior Tracking Tool for Kenyan Classrooms
 
-TabiaZetu is a classroom behavior monitoring tool built for Kenyan teachers. Designed to simplify the process of logging student behavior, analyzing patterns, and generating insights, TabiaZetu empowers teachers to make better, data-informed decisions — all within a mobile-friendly, intuitive interface.
+TabiaZetu is an innovative, data-driven classroom behavior management tool designed specifically for Kenyan teachers. Built with a focus on simplifying the process of tracking student behavior and providing actionable insights, TabiaZetu empowers educators to create more effective learning environments. By offering real-time analytics, personalized suggestions, and a user-friendly interface, the tool helps teachers make better-informed decisions and foster positive student development.
+
+Whether used in the Competency-Based Curriculum (CBC) or the traditional 8-4-4 system, TabiaZetu is designed to support teachers across a range of educational settings and academic subjects, enhancing the learning experience for both educators and students.
 
 ---
 
 ## 🚀 Project Overview
 
-Teachers in Kenya (and across Africa) often lack simple, effective tools for tracking student behavior over time. TabiaZetu bridges that gap by providing:
+TabiaZetu addresses a common challenge faced by teachers in Kenya and across Africa: the lack of easy-to-use, effective tools for tracking and analyzing student behavior over time. While traditional methods of behavior tracking often involve manual record-keeping, TabiaZetu introduces a digital solution that automates and simplifies this process.
 
-- A streamlined way to **log multiple behavior types**
-- Real-time **reports** and **visualizations**
-- Contextual **suggestions** to support classroom strategy
-- A scalable system that works across streams, subjects, and lessons
+The tool allows teachers to:
 
-Whether in CBC or 8-4-4 setups, TabiaZetu is designed to **support — not burden — the teacher**.
+- Log a variety of student behaviors across different contexts, streamlining the documentation process.
+- Visualize trends and generate reports to help identify patterns of behavior and learning needs.
+- Receive contextual, rules-based suggestions that help adjust classroom strategies for improved student outcomes.
+- Scale to support multiple classes, subjects, and teaching structures, including the CBC and 8-4-4 systems.
+
+In short, TabiaZetu is designed to augment the teacher's ability to manage student behavior efficiently without burdening them with extra administrative work. The tool ensures that the focus remains on teaching and student development.
 
 ---
 
@@ -94,7 +98,7 @@ pnpm install
 pnpm run dev
 ```
 
-The frontend runs on `http://localhost:5173`, and backend on `http://localhost:5000`.
+The frontend runs on `http://localhost:5173`, and the backend on `http://localhost:5000`.
 
 ---
 
@@ -122,8 +126,8 @@ This is an actively developed MVP. Designed and built by a 2-person team as part
 ## 📨 Feedback / Contributions
 
 Want to contribute or partner?  
-Open an issue or contact the team at: **[iancliff15@gmail.com.com] or [munyaopatrick002@gmail.com**
-]
+Open an issue or contact the team at: **[iancliff15@gmail.com.com] or [munyaopatrick002@gmail.com]**
+
 ---
 
 ## 📜 License
