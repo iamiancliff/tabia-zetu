@@ -49,8 +49,11 @@ app.use(
       process.env.CLIENT_URL || "http://localhost:3000",
       "http://localhost:5173",
       "http://127.0.0.1:5173",
+      "https://tabia-zetu.vercel.app", // Add your Vercel domain
+      "https://tabia-zetu-git-main-iamiancliffs-projects.vercel.app", // Add Vercel preview domain
+      process.env.FRONTEND_URL, // Allow setting custom frontend URL via environment variable
       // Add your custom frontend URL here if needed, e.g. "http://your-custom-frontend-url:PORT"
-    ],
+    ].filter(Boolean), // Remove any undefined values
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
