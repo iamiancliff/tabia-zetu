@@ -43,17 +43,37 @@ app.use((req, res, next) => {
 })
 
 // Middleware
+// CORS with flexible origin check to support Vercel previews
 app.use(
   cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:3000",
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://tabia-zetu.vercel.app", // Add your Vercel domain
-      "https://tabia-zetu-git-main-iamiancliffs-projects.vercel.app", // Add Vercel preview domain
-      process.env.FRONTEND_URL, // Allow setting custom frontend URL via environment variable
-      // Add your custom frontend URL here if needed, e.g. "http://your-custom-frontend-url:PORT"
-    ].filter(Boolean), // Remove any undefined values
+    origin: (origin, callback) => {
+      const staticAllowed = [
+        process.env.CLIENT_URL || "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://tabia-zetu.vercel.app",
+        "https://tabia-zetu-git-main-iamiancliffs-projects.vercel.app",
+        process.env.FRONTEND_URL,
+      ].filter(Boolean)
+
+      const allowedPatterns = [/\.vercel\.app$/]
+
+      // Allow non-browser requests (no origin header)
+      if (!origin) return callback(null, true)
+
+      const isAllowed =
+        staticAllowed.includes(origin) ||
+        allowedPatterns.some((re) => {
+          try { return re.test(new URL(origin).hostname) } catch { return false }
+        })
+
+      if (isAllowed) {
+        callback(null, true)
+      } else {
+        console.warn("⚠️ [CORS] Blocked origin:", origin)
+        callback(new Error("Not allowed by CORS"))
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
