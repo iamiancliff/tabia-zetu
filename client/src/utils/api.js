@@ -1,6 +1,24 @@
 import axios from "axios"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+// Determine API base URL for different environments
+const resolveApiBaseUrl = () => {
+  // Highest priority: explicit env var at build time
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
+
+  // If running in the browser on a hosted domain, default to Render API
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname
+    // Vercel (production/preview) frontends
+    if (host.includes("vercel.app")) {
+      return "https://tabia-zetu-api.onrender.com/api"
+    }
+  }
+
+  // Local development fallback
+  return "http://localhost:5000/api"
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
 
 class ApiService {
   constructor() {

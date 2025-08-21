@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { BookOpen, Plus, Clock, Download, CheckCircle, Users, Calendar, RefreshCw } from "lucide-react"
+import { toast } from "sonner"
+import { API_BASE_URL } from "../utils/api"
 import { useAuth } from "../context/AuthContext"
 import BehaviorForm from "../components/BehaviorForm"
 import DashboardSidebar from "../components/DashboardSidebar"
@@ -49,7 +51,7 @@ const BehaviorLog = () => {
 
       // Try to load from backend first
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiUrl = API_BASE_URL;
         const [behaviorsResponse, studentsResponse] = await Promise.all([
           fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -151,7 +153,7 @@ const BehaviorLog = () => {
         return
       }
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       
       // Load AI insights
       try {
@@ -210,7 +212,7 @@ const BehaviorLog = () => {
           throw new Error("No authentication token")
         }
 
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const apiUrl = API_BASE_URL
         const response = await fetch(`${apiUrl}/behaviors`, {
           method: "POST",
           headers: {
@@ -233,8 +235,8 @@ const BehaviorLog = () => {
           // Show success message
           toast.success("Behavior log added successfully!")
           
-          // Reset form
-          setShowForm(false)
+          // Close the add form tab if visible
+          setShowAddForm(false)
           return
         } else {
           throw new Error(`Backend error: ${response.status}`)
@@ -257,13 +259,11 @@ const BehaviorLog = () => {
         await loadAIData()
         
         toast.success("Behavior log added to local storage")
-        setShowForm(false)
+        setShowAddForm(false)
       }
     } catch (error) {
       console.error("Error adding behavior:", error)
       toast.error("Failed to add behavior log. Please try again.")
-    } finally {
-      setIsSubmitting(false)
     }
   }
 
