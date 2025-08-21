@@ -10,6 +10,7 @@ import SuggestionCard from "../components/SuggestionCard"
 import { useAuth } from "../context/AuthContext"
 import { BookOpen, Users, TrendingUp, AlertTriangle, Plus, Calendar, Clock, Target, Award, User, School } from "lucide-react"
 import { API_BASE_URL } from "../utils/api"
+import { toast } from "sonner"
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -157,8 +158,7 @@ const Dashboard = () => {
     }
 
     try {
-      // Try to save to backend
-      const apiUrl = API_BASE_URL;
+      const apiUrl = API_BASE_URL
       const response = await fetch(`${apiUrl}/behaviors`, {
         method: "POST",
         headers: {
@@ -169,13 +169,41 @@ const Dashboard = () => {
       })
 
       if (response.ok) {
-        // Refresh lists to pull populated behavior entries
         await loadData()
+        toast.success("Behavior log added successfully!")
       } else {
-        throw new Error("Backend save failed")
+        // Try to read detailed error from server
+        let serverMessage = `Request failed (${response.status})`
+        try {
+          const errJson = await response.json()
+          serverMessage = errJson?.message || serverMessage
+        } catch {}
+
+        // If student not found on backend (common when data exists only in localStorage),
+        // fall back to localStorage so the user can keep working offline.
+        if (response.status === 404 && serverMessage.toLowerCase().includes("student")) {
+          const newBehavior = {
+            id: Date.now().toString(),
+            ...payload,
+            createdAt: new Date().toISOString(),
+          }
+          const stored = JSON.parse(localStorage.getItem("behaviors") || "[]")
+          const updated = [newBehavior, ...stored]
+          localStorage.setItem("behaviors", JSON.stringify(updated))
+          setBehaviors(updated)
+          toast.success("Student not found on server; saved behavior locally")
+        } else if (response.status === 401) {
+          toast.error("Session expired. Please log in again.")
+          localStorage.removeItem("token")
+          localStorage.removeItem("user")
+          window.location.href = "/login"
+        } else {
+          throw new Error(serverMessage)
+        }
       }
     } catch (error) {
-      alert("Failed to connect to backend. Please check your server and network.");
+      console.error("Dashboard add behavior error:", error)
+      toast.error(error?.message || "Failed to connect to backend.")
     }
 
     setShowAddForm(false)
