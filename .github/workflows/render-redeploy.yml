@@ -1,0 +1,30 @@
+name: Trigger Render Backend Deploy
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'server/**'
+      - '.github/workflows/render-redeploy.yml'
+
+jobs:
+  redeploy:
+    name: Trigger Render Redeploy Hook
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Call Render Deploy Hook
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "RENDER_DEPLOY_HOOK secret is not set. Skipping."
+            exit 0
+          fi
+          HTTP_CODE=$(curl -sS -o /tmp/render_response.json -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}" -H 'accept: application/json' -H 'content-type: application/json')
+          echo "Render response status: $HTTP_CODE"
+          echo "Render response body:" && cat /tmp/render_response.json || true
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "Render deploy hook call failed"
+            exit 1
+          fi
+
+
