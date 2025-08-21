@@ -6,6 +6,7 @@ on:
     paths:
       - 'server/**'
       - '.github/workflows/render-redeploy.yml'
+  workflow_dispatch:
 
 jobs:
   redeploy:

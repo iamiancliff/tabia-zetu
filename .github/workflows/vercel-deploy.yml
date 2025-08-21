@@ -7,6 +7,7 @@ on:
       - 'client/**'
       - 'vercel.json'
       - '.github/workflows/vercel-deploy.yml'
+  workflow_dispatch:
 
 jobs:
   deploy:
