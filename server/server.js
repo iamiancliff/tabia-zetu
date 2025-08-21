@@ -115,6 +115,16 @@ app.get("/api/health", (req, res) => {
   })
 })
 
+// Root route - helpful for uptime pings and human visits
+app.get(["/", "/api"], (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "TabiaZetu API is live",
+    health: "/api/health",
+    docs: "",
+  })
+})
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("❌ [SERVER] Error occurred:", {
