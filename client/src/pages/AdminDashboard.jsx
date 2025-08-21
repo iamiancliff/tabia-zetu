@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Shield, Users, School, BarChart3, Trash2, AlertTriangle, CheckCircle, UserCheck, Building } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { Badge } from "@/components/ui/badge"
+import { API_BASE_URL } from "../utils/api"
 
 const AdminDashboard = () => {
   const { user } = useAuth()
@@ -31,7 +32,7 @@ const AdminDashboard = () => {
 
       // Try to load from backend first
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiUrl = API_BASE_URL;
         const [teachersResponse, behaviorsResponse] = await Promise.all([
           fetch(`${apiUrl}/admin/teachers`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -156,7 +157,7 @@ const AdminDashboard = () => {
       if (deleteType === "teacher") {
         // Try to delete from backend
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const apiUrl = API_BASE_URL;
           const response = await fetch(`${apiUrl}/admin/teachers/${itemToDelete.id}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -186,7 +187,7 @@ const AdminDashboard = () => {
 
         try {
           // Try to delete from backend
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const apiUrl = API_BASE_URL;
           const response = await fetch(`${apiUrl}/admin/schools`, {
             method: "DELETE",
             headers: {

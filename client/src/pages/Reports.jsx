@@ -23,6 +23,7 @@ import {
 } from "recharts"
 import { BarChart3, Download, TrendingUp, AlertTriangle, FileText, Award, Clock, Users, Shield } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
+import { API_BASE_URL } from "../utils/api"
 import jsPDF from "jspdf"
 import "jspdf-autotable"
 
@@ -58,7 +59,7 @@ const Reports = () => {
 
       // Try to load from backend first
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiUrl = API_BASE_URL;
         
         let behaviorsResponse, studentsResponse;
         

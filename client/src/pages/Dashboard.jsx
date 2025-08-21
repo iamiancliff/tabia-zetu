@@ -9,6 +9,7 @@ import BehaviorForm from "../components/BehaviorForm"
 import SuggestionCard from "../components/SuggestionCard"
 import { useAuth } from "../context/AuthContext"
 import { BookOpen, Users, TrendingUp, AlertTriangle, Plus, Calendar, Clock, Target, Award, User, School } from "lucide-react"
+import { API_BASE_URL } from "../utils/api"
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -105,7 +106,7 @@ const Dashboard = () => {
 
       // Try to load from backend first
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiUrl = API_BASE_URL;
         const [behaviorsResponse, studentsResponse] = await Promise.all([
           fetch(`${apiUrl}/behaviors`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -157,7 +158,7 @@ const Dashboard = () => {
 
     try {
       // Try to save to backend
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl = API_BASE_URL;
       const response = await fetch(`${apiUrl}/behaviors`, {
         method: "POST",
         headers: {

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Lightbulb, TrendingUp, AlertTriangle, Users, Clock, Target, Brain, Sparkles } from "lucide-react"
+import { API_BASE_URL } from "../utils/api"
 
 const AIBehaviorInsights = ({ behaviors, students, onInsightsGenerated }) => {
   const [insights, setInsights] = useState([])
@@ -50,7 +51,7 @@ const AIBehaviorInsights = ({ behaviors, students, onInsightsGenerated }) => {
         return insights
       }
       
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       
       for (const insight of insights) {
         const insightData = {

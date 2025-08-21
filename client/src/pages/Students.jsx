@@ -34,6 +34,7 @@ import {
   Target,
 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
+import { API_BASE_URL } from "../utils/api"
 
 const Students = () => {
   const { user } = useAuth()
@@ -98,7 +99,7 @@ const Students = () => {
 
       // Try to load from backend first
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const apiUrl = API_BASE_URL;
         const [studentsResponse, behaviorsResponse] = await Promise.all([
           fetch(`${apiUrl}/students`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -179,7 +180,7 @@ const Students = () => {
 
     try {
       // Try to save to backend
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl = API_BASE_URL;
       const response = await fetch(`${apiUrl}/students`, {
         method: "POST",
         headers: {
@@ -229,7 +230,7 @@ const Students = () => {
 
     try {
       // Try to update in backend
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl = API_BASE_URL;
       const response = await fetch(`${apiUrl}/students/${getId(editingStudent)}`, {
         method: "PUT",
         headers: {
@@ -265,7 +266,7 @@ const Students = () => {
 
     try {
       // Try to delete from backend
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl = API_BASE_URL;
       const response = await fetch(`${apiUrl}/students/${studentId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },

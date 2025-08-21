@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from "react"
+import { API_BASE_URL } from "../utils/api"
 
 const AuthContext = createContext()
 
@@ -49,7 +50,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true)
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       const loginUrl = `${apiUrl}/auth/login`
 
       const response = await fetch(loginUrl, {
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error("Please fill in all required fields")
       }
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       const registerUrl = `${apiUrl}/auth/register`
 
       const response = await fetch(registerUrl, {
@@ -152,7 +153,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       setLoading(true)
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       const response = await fetch(`${apiUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${storedToken}` },
       })

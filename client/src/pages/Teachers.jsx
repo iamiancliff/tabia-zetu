@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Users, Plus, Search, Mail, School, MapPin } from "lucide-react"
-import ApiService from "../utils/api"
+import ApiService, { API_BASE_URL } from "../utils/api"
 
 const Teachers = () => {
   const [teachers, setTeachers] = useState([])
@@ -50,7 +50,7 @@ const Teachers = () => {
     try {
       setIsLoading(true)
       // This would be an admin endpoint to get all teachers
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const apiUrl = API_BASE_URL;
       const response = await fetch(`${apiUrl}/admin/teachers`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

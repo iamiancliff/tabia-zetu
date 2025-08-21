@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { AlertTriangle, TrendingUp, Clock, Target, Users, Zap, Eye, Shield } from "lucide-react"
+import { API_BASE_URL } from "../utils/api"
 
 const BehaviorPredictor = ({ behaviors, students, onPredictionsGenerated }) => {
   const [predictions, setPredictions] = useState([])
@@ -54,7 +55,7 @@ const BehaviorPredictor = ({ behaviors, students, onPredictionsGenerated }) => {
         return predictions
       }
       
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       
       for (const prediction of predictions) {
         const predictionData = {
@@ -444,7 +445,7 @@ const BehaviorPredictor = ({ behaviors, students, onPredictionsGenerated }) => {
         plannedAt: new Date().toISOString()
       }
 
-      const response = await fetch('http://localhost:5000/api/teacher-actions', {
+      const response = await fetch(`${API_BASE_URL}/teacher-actions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

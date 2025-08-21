@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Settings as SettingsIcon, User, Camera, Save, CheckCircle, AlertTriangle, Trash2 } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
 import { useNavigate } from "react-router-dom"
+import { API_BASE_URL } from "../utils/api"
 
 const Settings = React.memo(() => {
   const { user, updateUser } = useAuth()
@@ -138,7 +139,7 @@ const Settings = React.memo(() => {
           const processedImageData = await processImage(e.target.result)
           
           // Upload to backend
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+          const apiUrl = API_BASE_URL
           const response = await fetch(`${apiUrl}/auth/upload-image`, {
             method: "POST",
             headers: {
@@ -251,7 +252,7 @@ const Settings = React.memo(() => {
 
       // Try to update in backend
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+        const apiUrl = API_BASE_URL
         
         const response = await fetch(`${apiUrl}/auth/profile`, {
           method: "PUT",
@@ -328,7 +329,7 @@ const Settings = React.memo(() => {
     setIsLoading(true)
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+      const apiUrl = API_BASE_URL
       const response = await fetch(`${apiUrl}/auth/change-password`, {
         method: "PUT",
         headers: {

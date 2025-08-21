@@ -19,6 +19,7 @@ import {
   Shield,
   LogIn
 } from "lucide-react"
+import { API_BASE_URL } from "../utils/api"
 
 const AIDataDashboard = () => {
   const [activeTab, setActiveTab] = useState("insights")
@@ -47,7 +48,7 @@ const AIDataDashboard = () => {
       }
       
       // Load insights
-      const insightsResponse = await fetch('http://localhost:5000/api/ai-insights?limit=50', {
+      const insightsResponse = await fetch(`${API_BASE_URL}/ai-insights?limit=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (insightsResponse.ok) {
@@ -72,7 +73,7 @@ const AIDataDashboard = () => {
       }
 
       // Load predictions
-      const predictionsResponse = await fetch('http://localhost:5000/api/behavior-predictions?limit=50', {
+      const predictionsResponse = await fetch(`${API_BASE_URL}/behavior-predictions?limit=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (predictionsResponse.ok) {
@@ -97,7 +98,7 @@ const AIDataDashboard = () => {
       }
 
       // Load actions
-      const actionsResponse = await fetch('http://localhost:5000/api/teacher-actions?limit=50', {
+      const actionsResponse = await fetch(`${API_BASE_URL}/teacher-actions?limit=50`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       if (actionsResponse.ok) {
@@ -140,9 +141,9 @@ const AIDataDashboard = () => {
       }
       
       const [insightsStats, predictionsStats, actionsStats] = await Promise.all([
-        fetch('http://localhost:5000/api/ai-insights/stats/overview', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:5000/api/behavior-predictions/stats/overview', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:5000/api/teacher-actions/stats/overview', { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_BASE_URL}/ai-insights/stats/overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/behavior-predictions/stats/overview`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/teacher-actions/stats/overview`, { headers: { 'Authorization': `Bearer ${token}` } })
       ])
 
       const statsData = {
