@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: tabia-zetu-api
+    env: node
+    rootDir: server
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+
