@@ -15,14 +15,14 @@ const behaviorLogSchema = mongoose.Schema(
     behaviorType: {
       type: String,
       required: true,
-      enum: ["positive", "negative", "neutral"],
+      // Allow detailed behavior slugs from the UI (e.g., 'helping_others', 'organized')
     },
     subject: {
       type: String,
     },
     timeOfDay: {
       type: String,
-      enum: ["morning", "afternoon", "evening"],
+      // Store the full label from UI, e.g., 'Morning (8:00 - 10:00 AM)'
     },
     severity: {
       type: String,
