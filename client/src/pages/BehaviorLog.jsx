@@ -5,19 +5,14 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BookOpen, Plus, Clock, Download, CheckCircle, Users, Calendar, RefreshCw } from "lucide-react"
+import { BookOpen, Plus, Clock, CheckCircle, Users, Calendar } from "lucide-react"
 import { toast } from "sonner"
 import { API_BASE_URL } from "../utils/api"
 import { useAuth } from "../context/AuthContext"
 import BehaviorForm from "../components/BehaviorForm"
 import DashboardSidebar from "../components/DashboardSidebar"
-import AIBehaviorInsights from "../components/AIBehaviorInsights"
-import BehaviorPredictor from "../components/BehaviorPredictor"
-import AIAnalysisSummary from "../components/AIAnalysisSummary"
+import StudentInsightsPanel from "../components/StudentInsightsPanel"
 import SmartSuggestions from "../components/SmartSuggestions"
-import QuickActions from "../components/QuickActions"
-import AIDashboardStatus from "../components/AIDashboardStatus"
-import AIDataDashboard from "../components/AIDataDashboard"
 
 const BehaviorLog = () => {
   const { user } = useAuth()
@@ -28,15 +23,13 @@ const BehaviorLog = () => {
   const [message, setMessage] = useState("")
   const [todayBehaviors, setTodayBehaviors] = useState([])
   const [weekBehaviors, setWeekBehaviors] = useState([])
-  const [aiInsights, setAiInsights] = useState([])
-  const [aiPredictions, setAiPredictions] = useState([])
   const [currentBehavior, setCurrentBehavior] = useState(null)
 
   useEffect(() => {
     const initializeData = async () => {
       try {
         await loadData()
-        await loadAIData() // Load AI-related data
+        // Compact insights panel (no external AI sync)
       } catch (error) {
         console.error("Failed to initialize data:", error)
       }
@@ -203,7 +196,7 @@ const BehaviorLog = () => {
 
   const handleAddBehavior = async (behaviorData) => {
     try {
-      setIsSubmitting(true)
+      // Submission state is managed inside `BehaviorForm`; no local submit state here
       
       // Try to save to backend first
       try {
@@ -464,70 +457,10 @@ const BehaviorLog = () => {
             </Card>
           </div>
 
-          {/* AI Analysis Summary */}
-          <AIAnalysisSummary 
-            behaviors={behaviors} 
-            students={students} 
-            insights={aiInsights} 
-            predictions={aiPredictions} 
-          />
+          {/* Personalized Insights Panel (clean, minimal) */}
+          <StudentInsightsPanel behaviors={behaviors} students={students} />
 
-          {/* AI Data Sync Controls */}
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <RefreshCw className="w-5 h-5 text-blue-600" />
-                  <span className="text-blue-900 font-medium">AI Data Synchronization</span>
-                </div>
-                <Button 
-                  onClick={loadAIData}
-                  variant="outline" 
-                  size="sm"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sync AI Data
-                </Button>
-              </div>
-              <p className="text-blue-700 text-sm mt-2">
-                Last sync: {new Date().toLocaleTimeString()}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <QuickActions 
-            insights={aiInsights}
-            predictions={aiPredictions}
-            behaviors={behaviors}
-            students={students}
-          />
-
-          {/* AI Dashboard Status */}
-          <AIDashboardStatus 
-            behaviors={behaviors}
-            students={students}
-            insights={aiInsights}
-            predictions={aiPredictions}
-          />
-
-          {/* AI Data Dashboard */}
-          <AIDataDashboard />
-
-          {/* AI Behavior Insights */}
-          <AIBehaviorInsights 
-            behaviors={behaviors} 
-            students={students} 
-            onInsightsGenerated={setAiInsights}
-          />
-
-          {/* Behavior Predictor */}
-          <BehaviorPredictor 
-            behaviors={behaviors} 
-            students={students} 
-            onPredictionsGenerated={setAiPredictions}
-          />
+          
 
           {/* Main Content Area */}
                       <Card className="bg-white/80 dark:bg-teal-800/80 backdrop-blur-sm border-teal-200 dark:border-teal-600 shadow-lg transition-colors duration-200">

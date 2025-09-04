@@ -9,8 +9,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -20,6 +18,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Brush,
 } from "recharts"
 import { BarChart3, Download, TrendingUp, AlertTriangle, FileText, Award, Clock, Users, Shield } from "lucide-react"
 import { useAuth } from "../context/AuthContext"
@@ -227,45 +226,55 @@ const Reports = () => {
 
   const filteredBehaviors = useMemo(() => getFilteredBehaviors(), [getFilteredBehaviors])
 
-  // Generate chart data
+  // Generate chart data grouped by month
   const getBehaviorTrendsData = useCallback(() => {
-    const data = {}
-    const daysToShow = selectedPeriod === "week" ? 7 : selectedPeriod === "month" ? 30 : 90
+    const monthlyMap = new Map()
 
-    // Initialize data for each day
-    for (let i = daysToShow - 1; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateKey = date.toISOString().split("T")[0]
-      data[dateKey] = {
-        date: date.toLocaleDateString(),
-        positive: 0,
-        negative: 0,
-        total: 0,
-      }
-    }
-
-    // Count behaviors by date
     filteredBehaviors.forEach((behavior) => {
       if (!behavior || !behavior.createdAt || !behavior.behaviorType) return
-      
       try {
-      const behaviorDate = new Date(behavior.createdAt).toISOString().split("T")[0]
-      if (data[behaviorDate]) {
-        data[behaviorDate].total++
-        if (["excellent_work", "class_participation", "helping_others", "leadership", "creativity", "respectful", "organized", "teamwork"].includes(behavior.behaviorType)) {
-          data[behaviorDate].positive++
-        } else {
-          data[behaviorDate].negative++
+        const d = new Date(behavior.createdAt)
+        if (isNaN(d.getTime())) return
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+        const dateMonth = d.toLocaleDateString("en-GB", { month: "short" })
+        const monthYear = d.toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+
+        if (!monthlyMap.has(monthKey)) {
+          monthlyMap.set(monthKey, {
+            monthKey,
+            dateMonth,
+            monthYear,
+            positive: 0,
+            negative: 0,
+            total: 0,
+          })
         }
+
+        const bucket = monthlyMap.get(monthKey)
+        bucket.total += 1
+        if ([
+          "excellent_work",
+          "class_participation",
+          "helping_others",
+          "leadership",
+          "creativity",
+          "respectful",
+          "organized",
+          "teamwork",
+        ].includes(behavior.behaviorType)) {
+          bucket.positive += 1
+        } else {
+          bucket.negative += 1
         }
       } catch (error) {
-        console.error("Error processing behavior for trends:", error)
+        console.error("Error processing behavior for monthly trends:", error)
       }
     })
 
-    return Object.values(data)
-  }, [filteredBehaviors, selectedPeriod])
+    return Array.from(monthlyMap.entries())
+      .sort((a, b) => (a[0] > b[0] ? 1 : -1))
+      .map(([, v]) => v)
+  }, [filteredBehaviors])
 
   const getBehaviorBySubjectData = useCallback(() => {
     const subjectData = {}
@@ -319,6 +328,20 @@ const Reports = () => {
 
     return Object.values(timeData)
   }, [filteredBehaviors])
+
+  // Custom legend with rounded color markers matching theme
+  const TrendsLegend = () => (
+    <div className="flex items-center justify-center gap-6 mt-2 text-sm">
+      <div className="flex items-center gap-2">
+        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: '#10b981' }}></span>
+        <span className="text-teal-800">Positive Behaviors</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></span>
+        <span className="text-teal-800">Negative Behaviors</span>
+      </div>
+    </div>
+  )
 
   // Calculate summary statistics
   const getSummaryStats = useCallback(() => {
@@ -633,51 +656,74 @@ const Reports = () => {
             </TabsList>
 
             <TabsContent value="trends">
-              <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg">
+              <Card className="bg-white/90 backdrop-blur-sm border-teal-200 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-teal-900">Behavior Trends Over Time</CardTitle>
+                  <CardTitle className="text-teal-900 text-xl md:text-2xl">Behavior Trends Over Time — Positive vs Negative</CardTitle>
                   <CardDescription className="text-teal-700">
-                    Daily behavior patterns showing positive vs negative trends
+                    Monthly totals showing how positive and negative behaviors evolve over time
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-96">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={getBehaviorTrendsData()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e0f2f1" />
-                        <XAxis dataKey="date" stroke="#0f766e" />
-                        <YAxis stroke="#0f766e" />
+                      <BarChart
+                        data={getBehaviorTrendsData()}
+                        barCategoryGap="28%"
+                        barGap={14}
+                        barSize={36}
+                        margin={{ bottom: 64, left: 16, right: 16, top: 8 }}
+                      >
+                        <defs>
+                          <linearGradient id="gradientPositive" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.9} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0.5} />
+                          </linearGradient>
+                          <linearGradient id="gradientNegative" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.9} />
+                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.5} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2f5f3" vertical={false} />
+                        <XAxis
+                          dataKey="dateMonth"
+                          stroke="#0f766e"
+                          tickMargin={10}
+                          interval="preserveStartEnd"
+                          minTickGap={18}
+                          height={36}
+                          tick={{ fontSize: 12, fill: '#0f766e' }}
+                          axisLine={false}
+                          tickLine={false}
+                          label={{ value: "Month", position: "insideBottom", offset: -10, style: { fill: "#0f766e" } }}
+                        />
+                        <YAxis
+                          stroke="#0f766e"
+                          allowDecimals={false}
+                          domain={[0, 'dataMax + 1']}
+                          axisLine={false}
+                          tickLine={false}
+                          width={44}
+                          label={{ value: "Behavior Count", angle: -90, position: "insideLeft", offset: 10, style: { fill: "#0f766e" } }}
+                        />
                         <Tooltip
+                          formatter={(value, name) => [value, name]}
+                          labelFormatter={(_, payload) => {
+                            if (!payload || !payload[0] || !payload[0].payload) return ''
+                            const p = payload[0].payload
+                            return p.monthYear || p.fullDate || ''
+                          }}
                           contentStyle={{
-                            backgroundColor: "white",
+                            backgroundColor: "#ffffff",
                             border: "1px solid #14b8a6",
-                            borderRadius: "8px",
+                            borderRadius: "10px",
+                            fontSize: 12,
                           }}
                         />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="positive"
-                          stroke="#10b981"
-                          strokeWidth={3}
-                          name="Positive Behaviors"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="negative"
-                          stroke="#ef4444"
-                          strokeWidth={3}
-                          name="Negative Behaviors"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="total"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          name="Total Behaviors"
-                        />
-                      </LineChart>
+                        {/* Custom legend for modern look */}
+                        <Legend verticalAlign="bottom" height={36} align="center" content={<TrendsLegend />} />
+                        <Bar dataKey="positive" name="Positive Behaviors" fill="url(#gradientPositive)" radius={[6,6,0,0]} />
+                        <Bar dataKey="negative" name="Negative Behaviors" fill="url(#gradientNegative)" radius={[6,6,0,0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>

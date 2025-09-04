@@ -95,10 +95,12 @@ const QuickActions = ({ insights = [], predictions = [], behaviors, students }) 
     })
 
     // Prediction-based actions
-    predictions.forEach(prediction => {
+    predictions.forEach((prediction, index) => {
+      const baseId = prediction.id || prediction._id || prediction.studentId || prediction.studentName || 'prediction'
+      const uniqueId = `prevent-${baseId}-${index}`
       if (prediction.riskLevel === 'high') {
         actions.push({
-          id: `prevent-${prediction.id}`,
+          id: uniqueId,
           title: 'Implement Prevention',
           description: 'Act on high-risk prediction',
           icon: <Shield className="w-5 h-5" />,
