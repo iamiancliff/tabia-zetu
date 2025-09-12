@@ -20,6 +20,7 @@ The tool allows teachers to:
 
 In short, TabiaZetu is designed to augment the teacher's ability to manage student behavior efficiently without burdening them with extra administrative work. The tool ensures that the focus remains on teaching and student development.
 
+Live Link (https://tabia-zetu.vercel.app/)
 ---
 
 ## 📦 Tech Stack
@@ -132,6 +133,6 @@ Open an issue or contact the team at: **[iancliff15@gmail.com.com] or [munyaopat
 
 ## 📜 License
 
-MIT License. Feel free to adapt and scale this project with attribution.
+Sole rights to this project are owned by Ian Cliff and Patrick Munyao as of September 12, 2025. All rights reserved.
 
 ---
